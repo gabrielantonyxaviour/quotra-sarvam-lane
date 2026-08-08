@@ -32,6 +32,14 @@ const SPEAK_CHAR_CAP = 2400;
 type Phase = "idle" | "recording" | "transcribing" | "thinking" | "translating" | "speaking" | "done";
 type ErrorKind = "no-mic" | "no-key" | "api";
 type PageError = { kind: ErrorKind; message: string };
+type SpokenLanguageChoice = "auto" | "en-IN" | "ta-IN" | "hi-IN";
+
+const LANGUAGE_CHOICES: { id: SpokenLanguageChoice; label: string }[] = [
+  { id: "auto", label: "Auto" },
+  { id: "en-IN", label: "EN" },
+  { id: "ta-IN", label: "த" },
+  { id: "hi-IN", label: "हि" },
+];
 
 /** Sarvam's detected-language codes aren't guaranteed to be exactly the
  *  QuotraLanguageCode set speak() accepts — normalize defensively. */
@@ -63,6 +71,10 @@ export default function VoicePlaygroundPage() {
 
   const [codemixText, setCodemixText] = useState<string | null>(null);
   const [spokenLanguage, setSpokenLanguage] = useState<"en-IN" | "ta-IN" | "hi-IN">("en-IN");
+  // Explicit override — auto-detect can misfire on short/code-mixed speech,
+  // so letting the rep pick their language guarantees the answer language
+  // deterministically instead of depending on Sarvam's detection confidence.
+  const [languageChoice, setLanguageChoice] = useState<SpokenLanguageChoice>("auto");
   const [answer, setAnswer] = useState<AskQuotraAnswer | null>(null);
   // The answer TEXT actually shown/spoken — English as-is when the rep spoke
   // English, translated into their language otherwise. One answer, one
@@ -153,14 +165,26 @@ export default function VoicePlaygroundPage() {
     }
     try {
       setPhase("transcribing");
+      // Auto-detect only when the rep hasn't told us their language — when
+      // they have (languageChoice !== "auto"), pass it straight to Sarvam
+      // (better STT accuracy than blind auto-detect) AND use it directly as
+      // the answer language, skipping detection-response parsing entirely.
+      const requestLanguage = languageChoice === "auto" ? "unknown" : languageChoice;
       const [codemix, translated] = await Promise.all([
-        transcribe({ audio, language: "unknown", mode: "codemix" }),
-        transcribe({ audio, language: "unknown", mode: "translate" }),
+        transcribe({ audio, language: requestLanguage, mode: "codemix" }),
+        transcribe({ audio, language: requestLanguage, mode: "translate" }),
       ]);
       setCodemixText(codemix.text);
-      const detected = normalizeSpokenLanguage(codemix.detectedLanguage ?? translated.detectedLanguage);
+      const detected =
+        languageChoice === "auto"
+          ? normalizeSpokenLanguage(codemix.detectedLanguage ?? translated.detectedLanguage)
+          : languageChoice;
       setSpokenLanguage(detected);
-      setDebugLanguage(`codemix=${codemix.detectedLanguage ?? "(none)"}, translate=${translated.detectedLanguage ?? "(none)"} → resolved ${detected}`);
+      setDebugLanguage(
+        languageChoice === "auto"
+          ? `codemix=${codemix.detectedLanguage ?? "(none)"}, translate=${translated.detectedLanguage ?? "(none)"} → auto-resolved ${detected}`
+          : `forced by language picker → ${detected}`,
+      );
 
       setPhase("thinking");
       const { system, messages } = buildAskQuotraPrompt({
@@ -240,6 +264,29 @@ export default function VoicePlaygroundPage() {
       )}
 
       <div className="card" style={{ textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "0.3rem", marginBottom: "0.75rem" }}>
+          {LANGUAGE_CHOICES.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              disabled={busy}
+              onClick={() => setLanguageChoice(opt.id)}
+              aria-pressed={languageChoice === opt.id}
+              style={{
+                padding: "0.3rem 0.7rem",
+                background: languageChoice === opt.id ? "#b6f05a" : "transparent",
+                color: languageChoice === opt.id ? "#0a0f0a" : "#e6f0e6",
+                border: languageChoice === opt.id ? "0" : "1px solid #2a3a2a",
+                fontWeight: languageChoice === opt.id ? 700 : 400,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted" style={{ marginBottom: "0.5rem" }}>
+          {languageChoice === "auto" ? "Auto-detect the language you speak" : "Speaking in: " + LANGUAGE_CHOICES.find((o) => o.id === languageChoice)?.label}
+        </p>
         <button
           type="button"
           disabled={!hasKey || busy}
