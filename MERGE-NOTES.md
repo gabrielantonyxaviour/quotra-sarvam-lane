@@ -371,3 +371,25 @@ Swapped en-IN's default to `neha`. Also fixed the same stale value in
 quality** — just confirmed to not 400 anymore. `checks/sarvam-voice.ts` still 23/23 (the
 speaker assertion reads the constant, not a hardcoded literal, so it covered this
 automatically once fixed).
+
+## Live fix #3 — auto-detect language never came back, so bilingual/Tamil-voice path never fired
+
+Third live-testing find: asking a Tamil question through the full loop produced a
+correct-looking ENGLISH answer with no Tamil translation card and no Tamil audio — the
+app was silently treating every input as English. Root cause: `transcribe()` omitted the
+`language_code` request field entirely for auto-detect (`args.language === "unknown"`),
+following `TASKS/T2-voice-core.md`'s paraphrase "omit → auto-detect". **Fetched the actual
+API reference** (`docs.sarvam.ai/api-reference/speech-to-text/transcribe`) instead of
+guessing again: it documents `language_code: "unknown"` as a valid, literal request value
+you're meant to SEND, not omit — and confirms the response's `language_code` field only
+reliably comes back populated with the detected language when you do. Fixed
+`lib/voice/sarvam.ts` to always send `language_code` (including the literal string
+`"unknown"`). Updated `checks/sarvam-voice.ts`'s matching assertion (it previously
+asserted the old, wrong behavior) — still 23/23.
+
+This is the pattern worth remembering for the rest of this lane: **task-brief paraphrases
+of the API aren't the API** — SARVAM-API-NOTES.md and the task briefs were written without
+live verification, and this is the second real behavioral gap they've had (after the TTS
+speaker list) between "what the docs/briefs implied" and "what the API actually does".
+Anything still unverified live (T1's response_format modes, T4's `/translate` response
+field, T5's whole Doc AI gating) should be treated as equally suspect until proven.

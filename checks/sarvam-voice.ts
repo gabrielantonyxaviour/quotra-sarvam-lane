@@ -114,7 +114,10 @@ async function offlineRequestShape(): Promise<void> {
 
   const restoreAuto = stubFetch((_url, init) => {
     const form = init.body as FormData;
-    check('transcribe() omits language_code for "unknown" (auto-detect)', !form.has("language_code"));
+    check(
+      'transcribe() sends language_code="unknown" explicitly for auto-detect (per the real API reference — omitting it left response.language_code empty in live testing)',
+      form.get("language_code") === "unknown",
+    );
     return { status: 200, body: { transcript: "auto-detected" } };
   });
   await transcribe({ audio, language: "unknown", mode: "translate" });

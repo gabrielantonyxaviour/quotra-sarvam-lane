@@ -133,9 +133,14 @@ export async function transcribe(args: TranscribeArgs): Promise<TranscribeResult
   form.append("file", forUpload(args.audio), "clip.webm");
   form.append("model", STT_MODEL);
   form.append("mode", args.mode);
-  if (args.language !== "unknown") {
-    form.append("language_code", args.language);
-  }
+  // Always send language_code, including the literal string "unknown" for
+  // auto-detect — per the real API reference (docs.sarvam.ai/api-reference/
+  // speech-to-text/transcribe), "unknown" is a valid explicit value, not
+  // something to omit. Omitting it (the original implementation, following
+  // TASKS/T2's paraphrase "omit → auto-detect") left response.language_code
+  // empty in live testing — the docs confirm sending "unknown" explicitly is
+  // what actually populates response.language_code with the detected language.
+  form.append("language_code", args.language);
 
   let res: Response;
   try {
