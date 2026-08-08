@@ -103,6 +103,20 @@ function resolveSarvamKey(): string {
 
 /* ---------- transcribe (Saaras STT) ---------- */
 
+/** Sarvam's STT allowlist matches MIME types by exact string — it accepts
+ *  "audio/webm" but rejects "audio/webm;codecs=opus", which is exactly what
+ *  browser MediaRecorder produces by default. FormData uses a Blob's own
+ *  `.type` as the multipart part's Content-Type, so the codec parameter
+ *  leaks straight through unless stripped first. */
+function stripCodecParams(mimeType: string): string {
+  return mimeType.split(";")[0].trim();
+}
+
+function forUpload(audio: Blob): Blob {
+  const bareType = stripCodecParams(audio.type || "audio/webm");
+  return audio.type === bareType ? audio : new Blob([audio], { type: bareType });
+}
+
 export async function transcribe(args: TranscribeArgs): Promise<TranscribeResult> {
   const key = resolveSarvamKey();
   if (args.audio.size > MAX_AUDIO_BYTES) {
@@ -110,7 +124,7 @@ export async function transcribe(args: TranscribeArgs): Promise<TranscribeResult
   }
 
   const form = new FormData();
-  form.append("file", args.audio, "clip.webm");
+  form.append("file", forUpload(args.audio), "clip.webm");
   form.append("model", STT_MODEL);
   form.append("mode", args.mode);
   if (args.language !== "unknown") {

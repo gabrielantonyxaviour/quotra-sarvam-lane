@@ -338,3 +338,19 @@ Template:
   4. **Deployment before submission**: laptop + ngrok is fine for tonight's demo, not for
      async judge review (a dropped tunnel mid-review has burned this team before per the
      task brief) — decide on Fly.io / Cloudflare container / small VPS and deploy.
+
+## Live fix — T2 STT rejected browser audio (found by Gabriel testing the real key)
+
+First real live signal from a real key: `/playground/voice` hold-to-talk failed with
+`Sarvam speech-to-text error (HTTP 400): Invalid file type: audio/webm;codecs=opus`.
+Root cause: Chrome's `MediaRecorder` defaults to MIME type `audio/webm;codecs=opus`;
+`FormData` uses a Blob's own `.type` as the multipart part's Content-Type; Sarvam's STT
+allowlist matches by exact string and only has bare `audio/webm` (no codec parameter) —
+so the real browser recording never had a chance. Fixed in `lib/voice/sarvam.ts`:
+`transcribe()` now strips codec parameters before upload (`forUpload()` helper,
+constructs a fresh Blob with the bare MIME type when needed). Added a regression
+assertion to `checks/sarvam-voice.ts` (now 23/23). This is exactly the kind of bug that
+can't be caught offline — the stubbed-fetch tests all used clean `"audio/webm"` Blobs, so
+the bug only surfaced against the real API's exact-string validation. **If STT still
+fails after this fix, the next thing to check is whether Sarvam's allowlist accepts
+`audio/ogg;codecs=opus` browsers either — same fix pattern applies.**

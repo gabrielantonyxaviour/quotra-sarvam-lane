@@ -120,6 +120,18 @@ async function offlineRequestShape(): Promise<void> {
   await transcribe({ audio, language: "unknown", mode: "translate" });
   restoreAuto.restore();
 
+  // Regression: browser MediaRecorder defaults to "audio/webm;codecs=opus", which
+  // Sarvam's STT allowlist rejects (it matches "audio/webm" by exact string only).
+  const codecAudio = new Blob([new Uint8Array(100)], { type: "audio/webm;codecs=opus" });
+  const restoreCodec = stubFetch((_url, init) => {
+    const form = init.body as FormData;
+    const file = form.get("file") as Blob;
+    check('transcribe() strips codec params so Content-Type is bare "audio/webm"', file.type === "audio/webm", file.type);
+    return { status: 200, body: { transcript: "ok" } };
+  });
+  await transcribe({ audio: codecAudio, language: "unknown", mode: "codemix" });
+  restoreCodec.restore();
+
   delete process.env.NEXT_PUBLIC_SARVAM_API_KEY;
 }
 
