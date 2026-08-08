@@ -64,7 +64,11 @@ export default function VoicePlaygroundPage() {
   const [codemixText, setCodemixText] = useState<string | null>(null);
   const [spokenLanguage, setSpokenLanguage] = useState<"en-IN" | "ta-IN" | "hi-IN">("en-IN");
   const [answer, setAnswer] = useState<AskQuotraAnswer | null>(null);
-  const [bilingualText, setBilingualText] = useState<string | null>(null);
+  // The answer TEXT actually shown/spoken — English as-is when the rep spoke
+  // English, translated into their language otherwise. One answer, one
+  // language, matching what they asked in. `answer.citations` stay
+  // language-agnostic (kind/ref ids) so they render unchanged either way.
+  const [displayAnswerText, setDisplayAnswerText] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -89,7 +93,7 @@ export default function VoicePlaygroundPage() {
     setError(null);
     setCodemixText(null);
     setAnswer(null);
-    setBilingualText(null);
+    setDisplayAnswerText(null);
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
   }
@@ -167,20 +171,24 @@ export default function VoicePlaygroundPage() {
       });
       setAnswer(data);
 
-      let textToSpeak = data.answer;
+      // One answer, in the language the rep actually spoke — English stays
+      // English; Tamil/Hindi input gets the LLM's English answer translated
+      // once and THAT is the only text shown and spoken (no separate
+      // English-vs-local display).
+      let localizedAnswer = data.answer;
       if (detected === "ta-IN" || detected === "hi-IN") {
         setPhase("translating");
-        const bilingual = await translate({
+        const translated = await translate({
           text: data.answer,
           source: "en-IN",
           target: toTranslateLanguage(detected),
         });
-        setBilingualText(bilingual.text);
-        textToSpeak = bilingual.text;
+        localizedAnswer = translated.text;
       }
+      setDisplayAnswerText(localizedAnswer);
 
       setPhase("speaking");
-      const spoken = await speak({ text: summarizeForSpeech(textToSpeak), language: detected });
+      const spoken = await speak({ text: summarizeForSpeech(localizedAnswer), language: detected });
       const url = URL.createObjectURL(spoken.audio);
       setAudioUrl(url);
       setPhase("done");
@@ -254,10 +262,10 @@ export default function VoicePlaygroundPage() {
         </div>
       )}
 
-      {answer && (
+      {answer && displayAnswerText && (
         <div className="card">
           <strong>{t("voice.answer", uiLang)}</strong>
-          <p>{answer.answer}</p>
+          <p>{displayAnswerText}</p>
           {answer.citations.length > 0 && (
             <>
               <strong style={{ fontSize: "0.85rem" }}>{t("voice.citations", uiLang)}</strong>
@@ -270,13 +278,6 @@ export default function VoicePlaygroundPage() {
               </div>
             </>
           )}
-        </div>
-      )}
-
-      {bilingualText && (
-        <div className="card">
-          <strong>{t("voice.inYourLanguage", uiLang)}</strong>
-          <p>{bilingualText}</p>
         </div>
       )}
 

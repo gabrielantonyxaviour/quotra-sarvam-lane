@@ -228,6 +228,21 @@ Template:
   - **Bilingual rendering only triggers for ta/hi** detected input — an English question
     just shows the English answer once (no redundant self-translation), matching "never
     replacing" the English but not manufacturing a translation nobody asked for.
+  - **UPDATE (live-testing feedback): dropped the "show English + translated-alongside"
+    design entirely.** The task brief said render both, "never replacing" the English —
+    that shipped and was tested live, but the two-block layout read as confusing/redundant
+    in an actual conversational voice UI (you asked in Tamil, why is there still an English
+    paragraph?). Changed to: ONE answer, in whatever language was spoken — English stays
+    English, Tamil/Hindi input gets the LLM's English answer translated once and THAT is
+    the only text shown and spoken. This is a deliberate deviation from T3's literal brief,
+    made on direct product feedback during live testing, not a bug fix. `answer.citations`
+    stay language-agnostic (kind/ref ids) so citation chips render unchanged either way —
+    only the prose answer text is now single-language. **This does NOT change T4's
+    `bilingual.ts` library itself** (`translateVerdictReasons`/`translateMatrixRows`/
+    `translateBidPackChecklist` still render-alongside-never-replace, per the real product
+    law for verdicts/matrices/bid packs) — this UX simplification is scoped to the T3
+    playground's conversational Q&A only, where the "citation is evidence, never replace
+    it" rule doesn't apply the same way (a spoken answer isn't a quoted clause).
 - Needs Gabriel:
   1. **The human-proof screen recording is missing** (`fixtures/playground-voice-demo.mp4`)
      — this needs a real microphone, a real Sarvam key, and a human speaking the Tamil
