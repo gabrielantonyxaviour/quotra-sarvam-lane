@@ -239,3 +239,48 @@ Template:
      API together in sequence.
   3. Sanity-check whether `lib/askquotra/`'s contract should actually just be folded into
      `lib/verdict/` or kept separate — a real product decision, not mine to make blind.
+
+## T5 — Doc AI digitisation · GATED at Step 0 · ~30min (timeboxed research, as instructed)
+
+- Landed: `lib/docai/sarvam.ts` (honest "not available" stub, not a speculative
+  implementation), `checks/sarvam-docai.ts`, **`fixtures/tender-gem-9679256.pdf`** — a
+  real, public, bilingual (Hindi/English) GeM tender PDF, 7 pages, downloaded directly
+  from `bidplus.gem.gov.in/showbidDocument/9679256` (the `sourceUrl` on fixture tender
+  `gem-9679256` in `fixtures/tenders.sample.json`) — no CAPTCHA/login needed for this one,
+  unlike the two CPPP fixture tenders. It's CCTV AMC for CSIR Pusa, contains exactly the
+  kind of content T5 wants to prove digitisation on (EMD detail, turnover eligibility,
+  technical specs table, bilingual text throughout).
+- Check: `npx tsx checks/sarvam-docai.ts` → **3/3 PASS** (fixture PDF exists and is
+  non-trivial; the stub fails loudly with a named error rather than silently). No live
+  half — there is no REST API to call. `npm run check` (tsc) → clean.
+- **Research finding (the actual T5 deliverable here): Sarvam Doc AI has NO documented
+  REST API.** Checked four docs.sarvam.ai/docai pages (`getting-started/overview.md`,
+  `how-to/digitise-a-document.md`, `how-to/extract-fields-from-a-document/
+  extract-structured-fields.md`, and the docai landing page) via the docs MCP-equivalent
+  fetch. Every page describes the dashboard workflow ONLY — upload, configure, process,
+  edit, download at `dashboard.sarvam.ai`. The landing page's own words: **"Every workflow
+  is one dashboard click at dashboard.sarvam.ai. No code required."** No endpoint paths,
+  no auth header, no job/poll shape, no response schema anywhere. Dashboard limits ARE
+  documented (50MB/file, 10 pages/project, PDF/JPEG/PNG) but those are UI constraints, not
+  API parameters.
+- **The task's own fallback also blocked**: "digitise ONE page manually via the dashboard
+  UI, save as `fixtures/docai-sample-output.json`" needs a Sarvam dashboard login —
+  unavailable in this environment. So both the primary path and its documented fallback
+  were gated here; per the task brief's own instruction ("do not burn hours on access"),
+  I stopped at the research finding rather than guessing at undocumented endpoints or
+  fabricating fixture output.
+- Decision made: **`digestTenderPdf()` throws a clear `DocAiNotAvailableError` instead of
+  calling speculative/made-up endpoints.** Writing code against an undocumented API would
+  produce something that LOOKS finished but silently fails or does the wrong thing —
+  worse than an honest stub (same pattern the original `lib/llm/sarvam.ts` stub used
+  before T1 landed). The `DigitisedPage` return shape (`{ page: number; text: string }[]`)
+  is there so a real implementation has a target to fill in.
+- Needs Gabriel (this is the task most worth 10 minutes of your direct attention):
+  1. **Log into dashboard.sarvam.ai and check**: (a) whether an API/enterprise tier for
+     Doc AI exists that just isn't in the public docs, and (b) if not, manually digitise
+     `fixtures/tender-gem-9679256.pdf` (or even just its first page) through the dashboard
+     UI and save the output as `fixtures/docai-sample-output.json` — this alone would
+     satisfy the task's fallback and give a real quality data point for the demo
+     narrative.
+  2. If real API access turns out to exist, `lib/docai/sarvam.ts`'s stub is exactly where
+     to drop in the real client — the file header documents what's known and unknown.
