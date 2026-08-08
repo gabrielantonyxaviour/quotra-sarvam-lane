@@ -57,7 +57,7 @@ TWILIO_SAMPLE_RATE = 8000
 # (no live testing was possible here). Flagged in MERGE-NOTES as the #1 thing to fix
 # before a real bilingual demo call.
 DEFAULT_TTS_LANGUAGE = os.getenv("QUOTRA_PHONE_TTS_LANGUAGE", "en-IN")
-DEFAULT_TTS_VOICE = os.getenv("QUOTRA_PHONE_TTS_VOICE", "anushka")  # matches lib/voice/sarvam.ts's en-IN default
+DEFAULT_TTS_VOICE = os.getenv("QUOTRA_PHONE_TTS_VOICE", "neha")  # matches lib/voice/sarvam.ts's en-IN default (validated live 2026-08-08)
 
 
 async def bot(runner_args: RunnerArguments) -> None:

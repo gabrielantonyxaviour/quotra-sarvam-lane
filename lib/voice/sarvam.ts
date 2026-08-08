@@ -45,12 +45,18 @@ export const MAX_AUDIO_BYTES = 30 * 32_000;
 
 const TTS_MAX_CHARS = 2500;
 
-/** Female/male pair per language, picked from the documented Voices page
- *  list (anushka, shubh, priya, simran, ishita, kavya, aditya, anand,
- *  rohan) — not yet A/B'd against real audio previews (no live key here).
- *  `primary` is the default `speak()` uses when `args.speaker` is omitted. */
+/** Female/male pair per language. `primary` is the default `speak()` uses
+ *  when `args.speaker` is omitted. VALIDATED against a real bulbul:v3 call
+ *  (2026-08-08): "anushka" is NOT a valid bulbul:v3 speaker despite being
+ *  named on the docs Voices page — the API's actual error message gave the
+ *  real allowlist: aditya, ritu, ashutosh, priya, neha, rahul, pooja,
+ *  rohan, simran, kavya, amit, dev, ishita, shreya, ratan, varun, manan,
+ *  sumit, roopa, kabir, aayan, shubh, advait, anand, tanya, tarun, sunny,
+ *  mani, gokul, vijay, shruti, suhani, mohit, kavitha, rehan, soham,
+ *  rupali, niharika. Swapped to "neha" for en-IN; the rest were already
+ *  on this list. */
 export const DEFAULT_SPEAKER: Record<"en-IN" | "ta-IN" | "hi-IN", { primary: string; female: string; male: string }> = {
-  "en-IN": { primary: "anushka", female: "anushka", male: "aditya" },
+  "en-IN": { primary: "neha", female: "neha", male: "aditya" },
   "ta-IN": { primary: "priya", female: "priya", male: "anand" },
   "hi-IN": { primary: "kavya", female: "kavya", male: "rohan" },
 };

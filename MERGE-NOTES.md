@@ -354,3 +354,20 @@ can't be caught offline — the stubbed-fetch tests all used clean `"audio/webm"
 the bug only surfaced against the real API's exact-string validation. **If STT still
 fails after this fix, the next thing to check is whether Sarvam's allowlist accepts
 `audio/ogg;codecs=opus` browsers either — same fix pattern applies.**
+
+## Live fix #2 — T2 TTS speaker "anushka" invalid for bulbul:v3
+
+Same live-testing session, one step further: STT → LLM worked correctly (real cited
+answer, e.g. "RAX Tech International is Udyam/MSE registered and offers products like
+the RT-RC01-W controller..." with citations `company: RAX Tech International`,
+`product: RT-RC01-W`, `product: RT-DFI-W`, `tender: cppp-28403` — the ask-quotra contract
+is working end-to-end against the real API). TTS then failed: `HTTP 400: Speaker
+'anushka' is not compatible with model bulbul:v3`. **The error response itself gave the
+real speaker allowlist** — recorded in `lib/voice/sarvam.ts`'s `DEFAULT_SPEAKER` comment
+now. Only `anushka` (the en-IN pick from SARVAM-API-NOTES.md's Voices-page name list) was
+actually invalid; `priya`/`anand`/`kavya`/`rohan`/`aditya` were all already valid.
+Swapped en-IN's default to `neha`. Also fixed the same stale value in
+`phone-agent/agent.py`'s `DEFAULT_TTS_VOICE`. **Still not manually A/B'd for voice
+quality** — just confirmed to not 400 anymore. `checks/sarvam-voice.ts` still 23/23 (the
+speaker assertion reads the constant, not a hardcoded literal, so it covered this
+automatically once fixed).
