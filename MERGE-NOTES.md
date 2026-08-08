@@ -185,3 +185,57 @@ Template:
      field-name guess above.
   3. A quick listen to `out-ta.wav`/`out-en.wav` once live, to sanity-check the
      `DEFAULT_SPEAKER` picks.
+
+## T3 — Ask Quotra by voice playground · done, human demo recording missing · ~1.5h
+
+- Landed: `app/playground/voice/page.tsx`, `lib/askquotra/contract.ts` (the ask-quotra
+  JSON contract + schema validator), `lib/askquotra/prompt.ts` (fixture-grounded prompt
+  builder), `checks/sarvam-playground.ts`. Also extended `lib/i18n/dictionaries/{en,ta,hi}
+  .ts` with 15 new `voice.*` keys (additive only — no existing English values touched;
+  `checks/sarvam-i18n.ts` still 10/10, both new languages at 15/15 on the new keys).
+- Check: `npx tsx checks/sarvam-playground.ts` → **8/8 PASS** — schema validator rejects
+  uncited/malformed answers and accepts well-formed ones (7 assertions), and a real
+  `next build` of the page passes (1 assertion). `npm run check` (tsc) → clean.
+- **Manually verified in a live browser** (not just `next build`): loaded
+  `/playground/voice`, confirmed the BYOK key field appears when no key is set, saving a
+  key to `localStorage.quotra_sarvam_key` makes the field disappear, and the
+  `LanguageToggle` live-switches ALL page chrome (title, key prompt, button labels) between
+  EN/Tamil/Hindi via `t()` — the page dogfoods the i18n seam as instructed. No console
+  errors. Could not exercise the actual voice loop (mic → STT → LLM → translate → TTS) —
+  no microphone and no real Sarvam key in this environment.
+- Wire-up tonight: the four pieces to lift into the real Ask Quotra dialog are (1)
+  `lib/askquotra/contract.ts` + `prompt.ts` as-is — provider-agnostic, works with either
+  Anthropic or Sarvam through `@/lib/llm`'s dispatch; (2) the push-to-talk `MediaRecorder`
+  pattern in `page.tsx` (pointer-down/up hold-to-talk, 25s hard-cap timer, `onstop` →
+  handler) — copy the handlers, not the JSX; (3) the `handleRecordingComplete` state
+  machine (transcribe×2 → completeJSON → conditional translate → speak → autoplay) is the
+  actual product flow, page markup around it is throwaway; (4) mount `LanguageToggle` per
+  T7's note (Settings or app header).
+- Decisions made:
+  - **`lib/askquotra/` is a new lib folder**, not reusing `lib/verdict/` — the ask-quotra
+    contract (`{ answer, citations[] }`) is a different, simpler shape than the verdict
+    contract (`{ verdict, reasons[], requirements[], ... }`), and T3's brief describes it
+    as its own contract. If the real product already has an Ask-Quotra contract type
+    elsewhere, this may need reconciling at merge — same caveat as T4's eligibility/bidpack
+    type mismatch.
+  - **Push-to-talk implemented as true hold** (Pointer Events: `onPointerDown` starts,
+    `onPointerUp`/`onPointerLeave` stops) rather than a click-to-toggle button, matching
+    the brief's literal "push-to-talk" wording. `onPointerLeave` guards against a stuck
+    "recording" state if the pointer is released off the button.
+  - **Speech summarization** (`summarizeForSpeech`): first 2 sentences (split on
+    `.!?।。`) capped at 2400 chars, matching the brief's "≤2 sentences, cap 2400 chars"
+    instruction literally.
+  - **Bilingual rendering only triggers for ta/hi** detected input — an English question
+    just shows the English answer once (no redundant self-translation), matching "never
+    replacing" the English but not manufacturing a translation nobody asked for.
+- Needs Gabriel:
+  1. **The human-proof screen recording is missing** (`fixtures/playground-voice-demo.mp4`)
+     — this needs a real microphone, a real Sarvam key, and a human speaking the Tamil
+     fixture question. This is also explicitly "tomorrow's demo rehearsal" per the task
+     brief — genuinely worth doing once, seriously, by a person.
+  2. Everything upstream (T1 live spike, T2 audio fixtures, T4 live translate) needs to be
+     verified live before this page's full loop can be trusted end-to-end — right now every
+     piece has passed its OFFLINE contract tests but none have run against the real Sarvam
+     API together in sequence.
+  3. Sanity-check whether `lib/askquotra/`'s contract should actually just be folded into
+     `lib/verdict/` or kept separate — a real product decision, not mine to make blind.
