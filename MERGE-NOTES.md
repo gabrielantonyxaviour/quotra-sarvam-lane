@@ -284,3 +284,57 @@ Template:
      narrative.
   2. If real API access turns out to exist, `lib/docai/sarvam.ts`'s stub is exactly where
      to drop in the real client — the file header documents what's known and unknown.
+
+## T6 — Phone agent (Twilio + Pipecat + Sarvam) · scaffolded, not run · ~1h
+
+- Landed: `phone-agent/agent.py`, `phone-agent/brain_context.py`, `phone-agent/README.md`,
+  `phone-agent/requirements.txt`, `phone-agent/.env.example`, `phone-agent/.gitignore`.
+- **Verified as far as this environment allows**: no Python interpreter was available at
+  first (`python3`/`python` both hit the Windows Store stub), but `py` (the Python launcher)
+  turned out to have a real Python 3.14.3 registered — `py -m py_compile agent.py
+  brain_context.py` passes (both files are syntactically valid), and **`py
+  brain_context.py` actually runs and produces a correct, well-grounded system prompt from
+  the real fixtures** (company, all 12 sample products, all 3 sample tenders — output
+  checked by eye, looks right). That's the one piece of T6 genuinely exercised here.
+  **`agent.py` itself was never run** — no `pipecat-ai` install, no Twilio/ngrok accounts,
+  no phone, no microphone in this environment.
+- Built from the real blueprint doc (`docs.sarvam.ai/api/integration/
+  build-voice-agent-with-twilio.md`), fetched and read directly — not guessed. Pipecat's
+  exact service construction (`SarvamSTTService`/`SarvamLLMService`/`SarvamTTSService`,
+  `.Settings` sub-objects, `create_transport`, the `pipecat.runner.run.main()` entrypoint,
+  TwiML Bin pointing at `wss://.../ws`) all comes straight from that doc.
+- Decisions made:
+  - **STT language auto-detect** (`language="unknown"`, `mode="transcribe"`) exactly as
+    T6's own task brief snippet specifies.
+  - **`brain_context.py` mirrors `fixtures/load.ts`'s real-fixture-preference pattern** in
+    Python rather than importing anything from the Node side (no cross-language import
+    possible) — same fixtures, same "prefer *.real.json" rule, kept in sync by convention
+    not by code sharing.
+  - **`requirements.txt` is NOT version-pinned to exact numbers** — task brief asks for
+    "requirements pinned," but pinning honestly requires an actual `pip install` +
+    `pip freeze`, which never happened here. Package names/extras are exact (from the
+    blueprint doc); the file's header comment tells Gabriel to `pip freeze` after the
+    first real install and commit that.
+  - **Known gap, flagged prominently in `phone-agent/README.md`**: Bulbul TTS
+    voice/language is set ONCE at pipeline startup (`QUOTRA_PHONE_TTS_LANGUAGE`/
+    `QUOTRA_PHONE_TTS_VOICE` env vars), not switched per-turn based on what the caller
+    actually spoke — so a Tamil-speaking caller may get an LLM reply written in Tamil but
+    voiced in the default TTS language/voice. Fixing this needs either a Pipecat processor
+    that reads STT's detected language and reconfigures TTS mid-call, or confirmed
+    per-utterance language override support in `SarvamTTSService` — neither could be
+    checked against the real API here. **This is the single most important thing to test
+    and likely fix before a real bilingual demo call.**
+- Needs Gabriel (this task needs the most hands-on work of all seven):
+  1. **Everything in the README's Setup section, in order** — Twilio trial account +
+     number, ngrok account, `pip install`, fill `.env`, run `python agent.py --transport
+     twilio`, tunnel it, wire the TwiML Bin, then actually call it. None of this has
+     executed anywhere yet.
+  2. **Test and likely fix the TTS-language-per-turn gap** above — this is the deciding
+     factor for whether the phone demo's bilingual story actually works or just always
+     answers in English.
+  3. **The recorded real call** (`fixtures/phone-agent-demo.mp4`) — Tamil question about
+     the Samba CCTV fixture tender, then a code-mixed follow-up — is the actual T6
+     acceptance bar and can only happen once the above is running.
+  4. **Deployment before submission**: laptop + ngrok is fine for tonight's demo, not for
+     async judge review (a dropped tunnel mid-review has burned this team before per the
+     task brief) — decide on Fly.io / Cloudflare container / small VPS and deploy.

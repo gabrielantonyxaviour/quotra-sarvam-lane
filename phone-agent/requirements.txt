@@ -1,0 +1,12 @@
+# Quotra phone-agent — T6 (TASKS/T6-phone-agent.md).
+#
+# NOT version-pinned to exact numbers: this environment has no Python
+# interpreter, so `pip install` was never run here and there's no `pip
+# freeze` to pin against honestly. Package names + extras are exact (from
+# docs.sarvam.ai/api/integration/build-voice-agent-with-twilio.md); Gabriel
+# should run `pip freeze > requirements.lock.txt` after the first real
+# install and commit that alongside this file.
+
+pipecat-ai[websocket,sarvam]
+python-dotenv
+loguru
