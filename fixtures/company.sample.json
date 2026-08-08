@@ -1,0 +1,64 @@
+{
+  "name": "RAX Tech International",
+  "legalName": "Rax-Tech International",
+  "gstin": null,
+  "city": "Chennai",
+  "phone": "+91-9894182461 / 044-22771949",
+  "logo": null,
+  "leadWeeks": null,
+  "categories": [
+    "Alarm Panels",
+    "E-Surveillance & CCTV",
+    "IoT & Sensors",
+    "Industrial Automation Panels",
+    "Marine Electronics",
+    "HSE Monitoring",
+    "Software",
+    "OEM Controllers",
+    "Exit Signage & Lighting"
+  ],
+  "udyamRegistered": true,
+  "udyamNumber": null,
+  "certs": [
+    {
+      "kind": "ISO 9001:2015",
+      "issuer": "Bureau Veritas Certification Holding SAS – UK Branch (UKAS Management Systems 0008, ISO 9001 reg. IN051809)",
+      "certNumber": null,
+      "validUntil": "2028-09-21",
+      "validityNote": "Original cycle start 22 September 2025; valid until 21 September 2028. Certificate PDF on file at _rax-data/certificates/ISO-9001-2015-BureauVeritas-IND.25.902.QM.U.pdf. Certified scope (verbatim): design and manufacturing of alarm panels and e-surveillance products. Certified address: 5/391, 5th Floor, Kaleeswari Tower, Medavakkam, Chennai – 600 100.",
+      "status": "verified"
+    },
+    {
+      "kind": "RoHS",
+      "issuer": null,
+      "certNumber": null,
+      "validUntil": null,
+      "validityNote": "Held per Gabriel [STATED] in RAX-GROUND-TRUTH.md §certifications; certificate copy not among the received records, so no validity date can be cited.",
+      "status": "stated"
+    },
+    {
+      "kind": "ZED (Zero Defect Zero Effect)",
+      "issuer": null,
+      "certNumber": null,
+      "validUntil": null,
+      "validityNote": "Held per Gabriel [STATED] in RAX-GROUND-TRUTH.md §certifications; certificate copy and ZED level not among the received records, so no validity date can be cited.",
+      "status": "stated"
+    }
+  ],
+  "turnoverByFY": {
+    "FY2017-18": 31000000,
+    "FY2018-19": 38500000,
+    "FY2019-20": 52000000,
+    "FY2020-21": 68000000,
+    "FY2021-22": 95000000,
+    "FY2022-23": 121000000,
+    "FY2023-24": 104000000,
+    "FY2024-25": 92000000,
+    "FY2025-26": 81000000
+  },
+  "address": "5/391, 5th Floor, Kaleeswari Tower, Medavakkam, Chennai – 600 100, Tamil Nadu, India",
+  "website": "https://www.rax-tech.com",
+  "notes": [
+    "PUBLIC SANITIZED FIXTURE: structure is real; turnoverByFY figures are representative (not actual), cert numbers removed. The real fixture (company.real.json) is delivered privately — drop it in this folder; loaders prefer *.real.json."
+  ]
+}

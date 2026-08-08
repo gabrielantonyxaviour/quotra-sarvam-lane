@@ -1,0 +1,238 @@
+[
+  {
+    "id": "rp-01",
+    "name": "1 channel Controller - upto 20A, 230VAC, 1 circuit controller , Mobile App, Wifi communication",
+    "model": "RT-RC01-W",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "channels": 1,
+      "voltages": [
+        "230VAC"
+      ],
+      "protocols": [
+        "WiFi"
+      ],
+      "compatibilities": [
+        "Mobile App"
+      ],
+      "notes": [
+        "Datasheet on file: \"IoT Controller  Single Channel\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-02",
+    "name": "3 channel controller -Upto 5A ,230Vac, 3 circuit control through mobile app, wifi communication ,",
+    "model": "RT-RC03-W",
+    "price": null,
+    "hasDatasheet": false,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "channels": 3,
+      "voltages": [
+        "230VAC"
+      ],
+      "protocols": [
+        "WiFi"
+      ],
+      "compatibilities": [
+        "Mobile App"
+      ],
+      "notes": [
+        "No datasheet in the received 114911_Data_Sheets set — full specs to be confirmed"
+      ]
+    }
+  },
+  {
+    "id": "rp-03",
+    "name": "8 channel Load sensing",
+    "model": "RT-LS08-W",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "channels": 8,
+      "notes": [
+        "Datasheet on file: \"Eight-Channel Load Sensing Unit\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-04",
+    "name": "Deep Freezer - Temperature and Humidity Wifi",
+    "model": "RT-DFI-W",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "protocols": [
+        "WiFi"
+      ],
+      "notes": [
+        "Datasheet on file: \"Deep Freezer WiFi IoT Device\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-05",
+    "name": "Deep Freezer GSM- Temperature and Humidity GPRS",
+    "model": "RT-DFI- G",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "protocols": [
+        "GSM/GPRS"
+      ],
+      "notes": [
+        "Datasheet on file: \"Deep Freezer GPS IoT Device\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-06",
+    "name": "Water quality sensors- PH and ORB, pulse flow, Wifi",
+    "model": "RT-WQF-W",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "protocols": [
+        "WiFi"
+      ],
+      "notes": [
+        "Datasheet on file: \"Water Quality Sensor with Flowmeter\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-07",
+    "name": "IoT Asset Tracking Unit - Ensuring device real working status and efficiency of the machine . Wifi Communicaton",
+    "model": "RT-ATU-W",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "protocols": [
+        "WiFi"
+      ],
+      "notes": [
+        "Datasheet on file: \"IoT Asset Tracking Unit\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-08",
+    "name": "IoT Single Zone Unit- Single digital input zone, Wifi communication",
+    "model": "RT-Z01-W",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "zones": 1,
+      "protocols": [
+        "WiFi"
+      ],
+      "notes": [
+        "Datasheet on file: \"IoT Single Zone Unit\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-09",
+    "name": "IoT Three Zone Input & Feedback - Wifi communication",
+    "model": "RT-Z03-W",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "zones": 3,
+      "protocols": [
+        "WiFi"
+      ],
+      "notes": [
+        "Datasheet on file: \"Real-Time 3-Zone IoT Input\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-10",
+    "name": "SOS device for childrens, elders and Women with tracking software (also listed under HSE with Fiot App)",
+    "model": "RT-SOS-G",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot",
+      "hse-monitoring"
+    ],
+    "capabilities": {
+      "compatibilities": [
+        "Fiot App",
+        "Tracking software"
+      ],
+      "notes": [
+        "Datasheet on file: \"SOS Tracking Emergency Safety Device Technical Data Sheet\" (114911_Data_Sheets)",
+        "Listed under both FIOT (sno 10) and HSE (sno 53) in the source master — merged, same model RT-SOS-G"
+      ]
+    }
+  },
+  {
+    "id": "rp-11",
+    "name": "Industrial Edge IOT gateways for industrial data collection with Wifi, Ethernet, GSM or LoRA.",
+    "model": "RT-IEI-E-G0",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "protocols": [
+        "WiFi",
+        "GSM/GPRS",
+        "Ethernet",
+        "LoRA"
+      ],
+      "notes": [
+        "Datasheet on file: \"Industrial Edge IOT Gateway Technical Datasheet\" (114911_Data_Sheets)"
+      ]
+    }
+  },
+  {
+    "id": "rp-12",
+    "name": "Rack monitoring controller -Ethernet- for Monitoring Rack and server room",
+    "model": "RT-RMC-GX",
+    "price": null,
+    "hasDatasheet": true,
+    "domains": [
+      "iot"
+    ],
+    "capabilities": {
+      "protocols": [
+        "Ethernet"
+      ],
+      "notes": [
+        "Datasheet on file: \"Rack Monitoring Controller Technical Data Sheet\" (114911_Data_Sheets)"
+      ]
+    }
+  }
+]

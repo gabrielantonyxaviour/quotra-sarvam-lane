@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env
+.env*.local
+*.log
+.DS_Store
+tsconfig.tsbuildinfo
+# real (private) fixtures — delivered over WhatsApp, never committed
+*.real.json

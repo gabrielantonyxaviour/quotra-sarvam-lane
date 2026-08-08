@@ -1,0 +1,23 @@
+/* Minimal dark base — the product's real design system stays in the product
+   repo; the playground only needs to be legible, not branded. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { color-scheme: dark; }
+body {
+  background: #0a0f0a;
+  color: #e6f0e6;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  min-height: 100vh;
+  padding: 2rem;
+}
+a { color: #b6f05a; }
+button {
+  background: #b6f05a; color: #0a0f0a; border: 0; border-radius: 6px;
+  padding: 0.6rem 1.2rem; font: inherit; font-weight: 700; cursor: pointer;
+}
+button:disabled { opacity: 0.4; cursor: default; }
+input, textarea {
+  background: #121a12; color: inherit; border: 1px solid #2a3a2a;
+  border-radius: 6px; padding: 0.5rem 0.75rem; font: inherit; width: 100%;
+}
+.card { border: 1px solid #2a3a2a; border-radius: 10px; padding: 1rem; margin: 1rem 0; background: #0f150f; }
+.muted { color: #7a8a7a; font-size: 0.85rem; }

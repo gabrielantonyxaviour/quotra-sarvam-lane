@@ -1,0 +1,14 @@
+{
+  "verdict": {
+    "model": "claude-sonnet-4-20250514",
+    "responseText": "SAMPLE — replaced by the real recorded verdict JSON after the first live run. Shape: { \"verdict\": \"GO\" | \"FIXABLE\" | \"NO-GO\", \"reasons\": [{ \"clause\": \"…\", \"page\": 0, \"text\": \"…\" }], \"requirements\": [\"…\"], \"eligibilityClauses\": [\"…\"], \"disqualificationRisks\": [\"…\"], \"unknowns\": [\"…\"] }"
+  },
+  "eligibility-matrix": {
+    "model": "claude-sonnet-4-20250514",
+    "responseText": "SAMPLE — replaced by the real recorded matrix JSON after the first live run. Shape: { \"rows\": [{ \"clause\": \"E1\", \"requirement\": \"…\", \"status\": \"have\" | \"missing\" | \"ambiguous\", \"evidenceDocId\": \"…\", \"evidenceNote\": \"…\", \"howToGet\": \"…\", \"preBidQuery\": \"…\" }] }"
+  },
+  "ask-quotra": {
+    "model": "claude-sonnet-4-20250514",
+    "responseText": "SAMPLE — replaced by the real recorded Ask Quotra answer after the first live run. Shape: { \"answer\": \"…\", \"citations\": [{ \"kind\": \"tender\" | \"company\" | \"product\", \"ref\": \"…\" }] } — uncited claims are prefixed 'needs confirmation' per the truth discipline."
+  }
+}

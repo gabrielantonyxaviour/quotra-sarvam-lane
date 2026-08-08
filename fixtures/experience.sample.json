@@ -1,0 +1,92 @@
+[
+  {
+    "buyer": "Industrial client A (Rack Monitoring)",
+    "productFamily": "Rack Monitoring",
+    "value": 17400000,
+    "fy": "FY2025-26",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client B (Edge Video Analytics)",
+    "productFamily": "Edge Video Analytics",
+    "value": 17100000,
+    "fy": "FY2024-25",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client C (PCMU)",
+    "productFamily": "PCMU",
+    "value": 12200000,
+    "fy": "FY2024-25",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client D (Power Supply Backup (PSPB))",
+    "productFamily": "Power Supply Backup (PSPB)",
+    "value": 11700000,
+    "fy": "FY2024-25",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client E (Access Control (OTP))",
+    "productFamily": "Access Control (OTP)",
+    "value": 8300000,
+    "fy": "FY2024-25",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client F (Access Control (OTP))",
+    "productFamily": "Access Control (OTP)",
+    "value": 8200000,
+    "fy": "FY2024-25",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client G (PCMU)",
+    "productFamily": "PCMU",
+    "value": 7600000,
+    "fy": "FY2025-26",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client H (Alarm & Automation Panels)",
+    "productFamily": "Alarm & Automation Panels",
+    "value": 5800000,
+    "fy": "FY2024-25",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client I (Power Supply Backup (PSPB))",
+    "productFamily": "Power Supply Backup (PSPB)",
+    "value": 5500000,
+    "fy": "FY2025-26",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  },
+  {
+    "buyer": "Industrial client J (Vending & Kitchen Controllers (OEM))",
+    "productFamily": "Vending & Kitchen Controllers (OEM)",
+    "value": 5300000,
+    "fy": "FY2024-25",
+    "completionEvidence": [
+      "redacted-in-public-fixture"
+    ]
+  }
+]
