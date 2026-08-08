@@ -7,7 +7,7 @@
 // Gabriel: candidates to mount this tonight are Settings and the app header
 // (see MERGE-NOTES) — his files, his call.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { activeLanguage, setActiveLanguage, type UiLanguage } from "@/lib/i18n";
 
 const OPTIONS: { id: UiLanguage; label: string }[] = [
@@ -17,15 +17,29 @@ const OPTIONS: { id: UiLanguage; label: string }[] = [
 ];
 
 export type LanguageToggleProps = {
+  /** Controlled value — pass the parent's own language state (e.g. a page's
+   *  `uiLang`) to keep one source of truth. Omit for a standalone toggle
+   *  with no parent state to sync (e.g. dropped into Settings). */
+  value?: UiLanguage;
   onChange?: (lang: UiLanguage) => void;
 };
 
-export function LanguageToggle({ onChange }: LanguageToggleProps) {
-  const [lang, setLang] = useState<UiLanguage>(() => activeLanguage());
+export function LanguageToggle({ value, onChange }: LanguageToggleProps) {
+  // SSR-safe default: localStorage doesn't exist on the server, so the first
+  // render (server AND client, pre-hydration) must always be "en" — reading
+  // activeLanguage() in a useState initializer caused a hydration mismatch
+  // whenever a different language was already saved from a prior visit.
+  // Sync the real value after mount instead.
+  const [internalLang, setInternalLang] = useState<UiLanguage>("en");
+  useEffect(() => {
+    if (value === undefined) setInternalLang(activeLanguage());
+  }, [value]);
+
+  const lang = value ?? internalLang;
 
   const select = (next: UiLanguage) => {
     setActiveLanguage(next);
-    setLang(next);
+    setInternalLang(next);
     onChange?.(next);
   };
 

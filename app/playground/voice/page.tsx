@@ -204,7 +204,7 @@ export default function VoicePlaygroundPage() {
     <main>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <h1>{t("voice.title", uiLang)}</h1>
-        <LanguageToggle onChange={setUiLang} />
+        <LanguageToggle value={uiLang} onChange={setUiLang} />
       </div>
 
       {!hasKey && (
