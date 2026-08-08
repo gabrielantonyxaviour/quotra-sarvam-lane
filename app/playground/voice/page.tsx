@@ -70,6 +70,11 @@ export default function VoicePlaygroundPage() {
   // language-agnostic (kind/ref ids) so they render unchanged either way.
   const [displayAnswerText, setDisplayAnswerText] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  // Temporary debug line — shows exactly what Sarvam reported for language
+  // detection on this turn, so a mismatch (or misdetection) is visible on
+  // the page itself without needing DevTools. Safe to remove once the
+  // detection path is confirmed solid across a few real test turns.
+  const [debugLanguage, setDebugLanguage] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -94,6 +99,7 @@ export default function VoicePlaygroundPage() {
     setCodemixText(null);
     setAnswer(null);
     setDisplayAnswerText(null);
+    setDebugLanguage(null);
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
   }
@@ -154,6 +160,7 @@ export default function VoicePlaygroundPage() {
       setCodemixText(codemix.text);
       const detected = normalizeSpokenLanguage(codemix.detectedLanguage ?? translated.detectedLanguage);
       setSpokenLanguage(detected);
+      setDebugLanguage(`codemix=${codemix.detectedLanguage ?? "(none)"}, translate=${translated.detectedLanguage ?? "(none)"} → resolved ${detected}`);
 
       setPhase("thinking");
       const { system, messages } = buildAskQuotraPrompt({
@@ -259,6 +266,7 @@ export default function VoicePlaygroundPage() {
         <div className="card">
           <strong>{t("voice.youSaid", uiLang)}</strong>
           <p>{codemixText}</p>
+          {debugLanguage && <p className="muted" style={{ fontSize: "0.75rem", marginTop: "0.4rem" }}>[debug] {debugLanguage}</p>}
         </div>
       )}
 
