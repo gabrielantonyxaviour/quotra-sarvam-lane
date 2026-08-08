@@ -64,3 +64,36 @@ Template:
   3. Real fixtures (`fixtures/company.real.json`, `fixtures/experience.real.json`) are in
      place from the zip you sent, confirmed `.gitignore`d (`git check-ignore` verified) —
      not committed, not going in this PR.
+
+## T7 — Indic UI copy (ta/hi dictionaries + LanguageToggle) · done · ~30min
+
+- Landed: `lib/i18n/dictionaries/ta.ts`, `lib/i18n/dictionaries/hi.ts` (23/23 seed keys,
+  100% coverage both languages), `components/i18n/LanguageToggle.tsx`,
+  `checks/sarvam-i18n.ts`.
+- Check: `npx tsx checks/sarvam-i18n.ts` → **10/10 PASS** (no orphans, seed-hash guard on
+  `en.ts`, `t()` fallback chain, coverage report). `npm run check` (tsc) → clean.
+- Wire-up tonight: mount `<LanguageToggle onChange={...} />` — candidates are Settings
+  (persistent per-user choice) or the app header (always visible, one tap to switch mid-
+  demo for a Tamil-speaking stakeholder). Your call; it only needs `@/lib/i18n`'s
+  `setActiveLanguage`/`activeLanguage`, no other wiring. Screens read via `t("key")`.
+- Decisions made:
+  1. **"Vault" and "Brain" stay English** in both ta/hi (`nav.vault`, `nav.brain`) — treated
+     as Quotra's own product feature names (proper nouns), same tier as GO/NO-GO/FIXABLE,
+     not generic nouns to translate.
+  2. **Domain nouns get transliterated into native script when they take a grammatical
+     case ending** — "tender" → `டெண்டர்`/`टेंडर`, "verdict" → `வெர்டிக்ட்`/similar,
+     "bid pack" → `பிட் பேக்`/`बिड पैक` — matching the actual fixture example in
+     `TASKS/T2-voice-core.md` ("இந்த **டெண்டருக்கு** EMD எவ்வளவு?"), which transliterates
+     "tender" but keeps the acronym "EMD" in Latin script. Read literally, T7's rule 2 says
+     these terms "stay English" — I followed the fixture's actual usage over the rule's
+     wording since Tamil/Hindi grammar can't attach case suffixes to Latin-script text
+     cleanly in a real sentence. Acronyms (EMD) stay Latin-script always.
+  3. **`ask.placeholder`'s trailing hint stays multi-script in every language** — the
+     English seed already ends "— English, தமிழ், हिन्दी…" to show all three scripts are
+     accepted; the ta/hi translations keep that exact trailing clause verbatim (only the
+     leading sentence is translated) so the hint reads the same regardless of which
+     language is active.
+- Needs Gabriel: **these are AI-drafted translations, not reviewed by a native Tamil/Hindi
+  speaker.** UI chrome is short — get 5 minutes from a native speaker before the demo,
+  especially on `verdict.run`/`verdict.running`/`tender.*` phrasing, which are judgment
+  calls on register (I aimed for plain business Tamil/Hindi, not formal/literary).
