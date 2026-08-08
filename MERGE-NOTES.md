@@ -243,6 +243,20 @@ Template:
     law for verdicts/matrices/bid packs) — this UX simplification is scoped to the T3
     playground's conversational Q&A only, where the "citation is evidence, never replace
     it" rule doesn't apply the same way (a spoken answer isn't a quoted clause).
+  - **UPDATE #2: added an explicit language picker (Auto/EN/த/हि) next to the record
+    button.** Continued live testing kept showing Tamil speech coming back English —
+    plausibly Sarvam's auto-detect misfiring on short or code-mixed clips, which is
+    inherently probabilistic (confidence-based) and not something a code fix can guarantee
+    against. Rather than keep chasing detection accuracy blind across several rounds of
+    "send me the network response," added a picker: when the rep picks a specific
+    language, it's passed straight to `transcribe()` (also improves raw STT accuracy vs.
+    blind auto-detect) AND used directly as the answer language — no response-language
+    parsing involved at all when a language is explicitly chosen. Auto-detect is still the
+    default and unchanged for reps who don't specify. **This makes "Tamil in → Tamil out"
+    deterministic** regardless of how confident Sarvam's own detector is on any given
+    clip — the actual thing being asked for. The `[debug] codemix=..., translate=...`
+    line (still present) now also shows `forced by language picker → ta-IN` when a
+    language is explicitly selected, so it's obvious which path was taken.
 - Needs Gabriel:
   1. **The human-proof screen recording is missing** (`fixtures/playground-voice-demo.mp4`)
      — this needs a real microphone, a real Sarvam key, and a human speaking the Tamil
