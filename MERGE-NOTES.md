@@ -141,3 +141,47 @@ Template:
      `lib/bidpack/` types match `EligibilityRow`/`BidPackComplianceRow` closely enough to
      drop `bilingual.ts` in unchanged, or whether the `*Translated` field names need a
      rename pass at merge.
+
+## T2 — Voice core (Saaras STT + Bulbul TTS) · done, audio fixtures missing · ~1h
+
+- Landed: `lib/voice/sarvam.ts` (real `transcribe`/`speak`), `checks/sarvam-voice.ts`,
+  `fixtures/audio/README.md` (recording instructions, no audio committed).
+- Check: `npx tsx checks/sarvam-voice.ts` → **22/22 offline PASS**; live half (STT fixture
+  round-trips + `speak()` round-trip) **SKIPPED — no `NEXT_PUBLIC_SARVAM_API_KEY` AND no
+  recorded audio fixtures.** `npm run check` (tsc) → clean.
+- Wire-up tonight: `sarvamVoiceProvider` (id: "sarvam") satisfies `lib/voice/types.ts`'s
+  frozen `VoiceProvider` exactly — `transcribe()`/`speak()` are pure functions over Blobs,
+  no UI/store coupling. Deliberately does NOT import `lib/llm/sarvam.ts` (duplicates key
+  resolution) so this module stays independently mergeable per the task brief.
+- Decisions made:
+  - **Audio fixtures were NOT recorded** — this build environment has no microphone.
+    `fixtures/audio/README.md` has exact recording instructions (3 files, ≤15s,
+    16kHz WAV/webm) for whoever has a mic. **This is the one T2 acceptance item that
+    genuinely cannot be done here — needs a human.**
+  - **30s guard is a byte-size heuristic**, not a real duration check (Blobs don't carry
+    duration): `MAX_AUDIO_BYTES` assumes worst-case 16kHz/16-bit mono WAV (~256kbps) ×
+    30s ≈ 960KB. Compressed formats (webm/opus) will rarely trip this — the real
+    enforcement is T3's 25s recorder hard-cap; this is a backstop only.
+  - **2,500-char TTS limit: chose "speak the first chunk + `truncated` flag" over
+    concatenation** (the task explicitly offered both options) — naively concatenating
+    separate WAV/opus API responses is fragile (headers/duration fields don't just
+    byte-concat), so the honest behavior is speaking what fits and flagging the rest.
+    `SarvamSpeakResult` extends the frozen `SpeakResult` with `truncated`/`charsSpoken`
+    (extra fields — structurally still satisfies `VoiceProvider.speak()`'s `Promise<
+    SpeakResult>` contract).
+  - **Default speakers** (`DEFAULT_SPEAKER`): en-IN → anushka(f)/aditya(m), ta-IN →
+    priya(f)/anand(m), hi-IN → kavya(f)/rohan(m), primary = female voice per language.
+    **Picked from the documented Voices-page name list, not A/B'd against real audio** (no
+    live key here) — listen to `fixtures/audio/out-ta.wav`/`out-en.wav` once the live
+    check runs and swap if a different voice reads better for the demo.
+  - **STT response field is a guess** (`transcript`, falling back to `text`) — TTS's
+    `audios[]` field IS pinned in SARVAM-API-NOTES.md and used directly with confidence,
+    but the STT response shape isn't documented there. Same category of risk as T4's
+    `/translate` response-field guess.
+- Needs Gabriel:
+  1. **Record the three audio fixtures** (see `fixtures/audio/README.md`) — this is a
+     hard blocker for T2's live acceptance and for T3's human-proof demo recording.
+  2. Real `NEXT_PUBLIC_SARVAM_API_KEY` to run the live half and confirm the STT response
+     field-name guess above.
+  3. A quick listen to `out-ta.wav`/`out-en.wav` once live, to sanity-check the
+     `DEFAULT_SPEAKER` picks.
