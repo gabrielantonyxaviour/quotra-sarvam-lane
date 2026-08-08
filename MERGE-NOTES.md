@@ -97,3 +97,47 @@ Template:
   speaker.** UI chrome is short — get 5 minutes from a native speaker before the demo,
   especially on `verdict.run`/`verdict.running`/`tender.*` phrasing, which are judgment
   calls on register (I aimed for plain business Tamil/Hindi, not formal/literary).
+
+## T4 — Translate layer (bilingual verdicts/matrices/packs) · done, live untested · ~1h
+
+- Landed: `lib/translate/sarvam.ts` (real `translate`/`translateMany`), `lib/translate/
+  bilingual.ts` (`translateVerdictReasons`/`translateMatrixRows`/`translateBidPackChecklist`),
+  `checks/sarvam-translate.ts`.
+- Check: `npx tsx checks/sarvam-translate.ts` → **21/21 offline PASS**; live half (real
+  en→ta/en→hi translation + matrix row round-trip) **SKIPPED — no
+  `NEXT_PUBLIC_SARVAM_API_KEY`**. `npm run check` (tsc) → clean.
+- Wire-up tonight: `sarvamTranslateProvider` (id: "sarvam") satisfies `lib/translate/
+  types.ts`'s frozen `TranslateProvider` interface directly. `bilingual.ts`'s three helpers
+  are the ones to call from screens — each takes the *untranslated* source array + a
+  `TranslateLanguage` target and returns the same objects with a new `*Translated` field;
+  nothing in `lib/tenders/types.ts`'s `VerdictReason`/`EligibilityRow`/
+  `BidPackComplianceRow` shapes is touched.
+- Decisions made:
+  - **`lib/eligibility/matrix.ts` and `lib/bidpack/` don't exist in this trimmed lane
+    copy** — the task brief names them, but this repo only carries the trimmed
+    `lib/tenders/types.ts`, which already has `EligibilityRow` and `BidPackComplianceRow`.
+    Imported from there instead; if the real product repo's `MatrixRow`/bid-pack item
+    shapes differ from `EligibilityRow`/`BidPackComplianceRow`, the `*Translated` field
+    names here (`requirementTranslated`, `howToGetTranslated`, `specTranslated`) may need
+    renaming at merge time — the logic (translate the free-text field, leave IDs/clauses
+    untouched) carries over regardless.
+  - **Response field name is a guess**: `POST /translate`'s exact response shape wasn't
+    pinned in SARVAM-API-NOTES.md and I have no live key to confirm it. Coded to read
+    `translated_text` (falls back to `output`) — **this is unverified against the real
+    API.** First thing to check once a key is available; if the live spike/checks show a
+    different field name, it's a one-line fix in `translateChunk()`.
+  - Digit-preservation guard (`digitsPreserved`) is a count-preserving multiset compare
+    of `\d+` sequences, not position-preserving — a translation that reorders clauses but
+    keeps all the same numbers still passes, which is the correct behavior (translations
+    legitimately reorder word order).
+  - Reused `RateLimitError`/`ApiError` from `lib/llm/client.ts` again (same house pattern
+    as T1) — same known wart applies: failures surface as "Anthropic API error" even
+    though the call was to Sarvam. Visible directly in this check's own console output
+    (`translateMany: row 1 failed (Anthropic API error (HTTP 500): ...)`).
+- Needs Gabriel:
+  1. Real `NEXT_PUBLIC_SARVAM_API_KEY` to run the live half and confirm the `/translate`
+     response field name assumption above.
+  2. Confirm whether the real product repo's `lib/eligibility/matrix.ts` /
+     `lib/bidpack/` types match `EligibilityRow`/`BidPackComplianceRow` closely enough to
+     drop `bilingual.ts` in unchanged, or whether the `*Translated` field names need a
+     rename pass at merge.
