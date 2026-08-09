@@ -11,6 +11,10 @@ export default function Home() {
         <Link href="/playground/voice">→ /playground/voice</Link>
         <p className="muted">T3 deliverable: ask Quotra by voice (Saaras → Sarvam-105B → Bulbul).</p>
       </div>
+      <div className="card">
+        <Link href="/playground/docai">→ /playground/docai</Link>
+        <p className="muted">S4 deliverable: digitise a tender PDF live via Sarvam Doc AI, browse per-page output.</p>
+      </div>
     </main>
   );
 }
