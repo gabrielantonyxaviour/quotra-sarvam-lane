@@ -18,7 +18,43 @@ Template:
 
 ---
 
-(entries start here)
+## TODAY'S STATUS SUMMARY — compressed buildathon run, 2026-08-09 (submit 7pm)
+
+The doc's original timeline (rehearsal merge Wed 8/12, final merge T-2 days before the
+event) assumed a multi-day runway. Actual buildathon deadline is same-day 7pm — S4 and
+S5 were formally cut from today's scope to protect S1-S3 (the LLM adapter + voice mode
+centerpiece). Final check-suite sweep, all live against the real API:
+
+| Suite | Result |
+|---|---|
+| `sarvam-spike.ts` (S1) | 3/3 PASS — json_schema locked in as the verdict response mode |
+| `sarvam-llm.ts` (S1/S2) | 19/19 PASS — real verdict + real Tanglish Ask-Quotra call both clean |
+| `sarvam-conformance.ts` (S2) | 2/3-1/3 PASS across runs — **not deterministic**, one fixture (`gem-9679256`) hard-fails reliably on thinking-mode token exhaustion. Avoid it live; prefer `cppp-2026-drdo-921134-1` |
+| `sarvam-voice-e2e.ts` (S3) | 2/2 PASS — full TTS→STT→105b→translate→TTS loop proven live in Tamil + Hindi |
+| `sarvam-i18n.ts` (S6) | 10/10 PASS — 100% coverage, unchanged from before today |
+| `sarvam-translate.ts` (S7) | 24/24 PASS — real en→ta/en→hi confirmed, digits intact |
+| `sarvam-voice.ts` (T2) | 25/25 PASS — real TTS round-trips; STT-fixture assertions still SKIP (no human audio yet) |
+| `sarvam-docai.ts` (S4) | 3/3 PASS (correctly gated/skipped — no REST API exists, formally cut for today) |
+| `npm run build` | Clean production build, 3 routes |
+
+**Two real bugs found and fixed today** (both from live testing, not offline/synthetic):
+1. `checks/sarvam-llm.ts`, `sarvam-translate.ts`, `sarvam-voice.ts` all silently
+   SKIPPED their live halves even with a real key set — the offline test setup deleted
+   `NEXT_PUBLIC_SARVAM_API_KEY` for isolation and never restored it. Fixed in all three.
+2. The voice playground looked like it gave "the same answer every time" with a real
+   mic — actually an empty `translate`-mode STT transcript being silently sent to the
+   LLM, compounded by a UI bug that hid the "You said" box entirely when the transcript
+   was empty instead of showing that it was empty. Fixed — see "Live fix #4" below.
+
+**What's genuinely demo-ready right now**: S1/S2 (LLM adapter, live-verified), S3
+(voice loop, live-verified end-to-end short of an actual human recording), S6/S7
+(i18n + bilingual, live-verified). **What still needs a human before the demo**: one
+real microphone test of `/playground/voice` (the fix above should be tested against
+real speech), and ideally a native Tamil/Hindi speaker's 5-minute review of the UI copy.
+
+(entries start here, oldest-numbered first below; TASKS T1-T6 predate the S1-S7
+renumbering and are kept for their detail — see each S-block above the matching T-block
+for what changed today)
 
 ## T1 — LLM adapter (Sarvam) · done, spike LIVE-RUN 2026-08-09 · ~1h
 
