@@ -9,6 +9,7 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
     "next": "^15.4.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

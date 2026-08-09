@@ -167,15 +167,16 @@ export default function VoicePlaygroundPage() {
       setPhase("idle");
       return;
     }
-    if (audio.size < 2000) {
-      // A handful of bytes is a container header with ~no audio in it — this
-      // is what "held the button but Sarvam heard nothing" looks like at the
-      // recording layer, before it even reaches the network. Surface it here
-      // instead of letting it silently fail Sarvam's side and produce an
-      // empty transcript with no diagnostic trail.
+    if (recordedMs < 600 || audio.size < 2000) {
+      // Duration is the more reliable signal — a live real-mic test recorded
+      // "Bye" (a plausible-sounding hallucination, not real speech) from a
+      // clip that was only held 0.2s / 2228 bytes, which slipped past a
+      // byte-size-only guard. A quick click (press+release) on a "Hold to
+      // talk" button often IS this short — the interaction requires an
+      // actual press-and-hold for the duration of speaking, not a click.
       setError({
         kind: "api",
-        message: `Recording was almost empty (${audioDebug}) — the button was likely released before any audio was captured. Hold it down while speaking, then release.`,
+        message: `Recording was too short to contain real speech (${audioDebug}) — this looks like a click, not a hold. Press and HOLD the button down for the whole time you're speaking, then release.`,
       });
       setPhase("idle");
       return;

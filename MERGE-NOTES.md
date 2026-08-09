@@ -21,23 +21,27 @@ Template:
 ## TODAY'S STATUS SUMMARY — compressed buildathon run, 2026-08-09 (submit 7pm)
 
 The doc's original timeline (rehearsal merge Wed 8/12, final merge T-2 days before the
-event) assumed a multi-day runway. Actual buildathon deadline is same-day 7pm — S4 and
-S5 were formally cut from today's scope to protect S1-S3 (the LLM adapter + voice mode
-centerpiece). Final check-suite sweep, all live against the real API:
+event) assumed a multi-day runway. Actual buildathon deadline is same-day 7pm. S5 was
+initially deferred to protect S1-S3 (the LLM adapter + voice mode centerpiece), then
+built later the same day; S4 was cut, then **un-cut same-day** after finding Sarvam
+relaunched their platform with a real Doc AI API (see the S4 block for the full story).
+Only the T6 phone agent stays cut for today. Final check-suite sweep, all live against
+the real API:
 
 | Suite | Result |
 |---|---|
 | `sarvam-spike.ts` (S1) | 3/3 PASS — json_schema locked in as the verdict response mode |
 | `sarvam-llm.ts` (S1/S2) | 19/19 PASS — real verdict + real Tanglish Ask-Quotra call both clean |
-| `sarvam-conformance.ts` (S2) | 2/3-1/3 PASS across runs — **not deterministic**, one fixture (`gem-9679256`) hard-fails reliably on thinking-mode token exhaustion. Avoid it live; prefer `cppp-2026-drdo-921134-1` |
+| `sarvam-conformance.ts` (S2) | Hard failures fixed (see flaky-tender-fix block); remaining citation-fidelity misses are a check-script measurement artifact, not a product bug |
 | `sarvam-voice-e2e.ts` (S3) | 2/2 PASS — full TTS→STT→105b→translate→TTS loop proven live in Tamil + Hindi |
+| `sarvam-agents.ts` (S5) | 12/12 PASS — Watcher + Deep-reader live, both provably Anthropic-independent |
 | `sarvam-i18n.ts` (S6) | 10/10 PASS — 100% coverage, unchanged from before today |
 | `sarvam-translate.ts` (S7) | 24/24 PASS — real en→ta/en→hi confirmed, digits intact |
 | `sarvam-voice.ts` (T2) | 25/25 PASS — real TTS round-trips; STT-fixture assertions still SKIP (no human audio yet) |
-| `sarvam-docai.ts` (S4) | 3/3 PASS (correctly gated/skipped — no REST API exists, formally cut for today) |
-| `npm run build` | Clean production build, 3 routes |
+| `sarvam-docai.ts` + `sarvam-docai-verdict-e2e.ts` (S4) | 7/7 + 3/3 PASS live — real PDF → real 7-page digitisation → real verdict with real page citations |
+| `npm run build` | Clean production build |
 
-**Two real bugs found and fixed today** (both from live testing, not offline/synthetic):
+**Bugs found and fixed today** (all from live testing, not offline/synthetic):
 1. `checks/sarvam-llm.ts`, `sarvam-translate.ts`, `sarvam-voice.ts` all silently
    SKIPPED their live halves even with a real key set — the offline test setup deleted
    `NEXT_PUBLIC_SARVAM_API_KEY` for isolation and never restored it. Fixed in all three.
@@ -45,12 +49,17 @@ centerpiece). Final check-suite sweep, all live against the real API:
    mic — actually an empty `translate`-mode STT transcript being silently sent to the
    LLM, compounded by a UI bug that hid the "You said" box entirely when the transcript
    was empty instead of showing that it was empty. Fixed — see "Live fix #4" below.
+3. `gem-9679256` hard-failing the verdict conformance suite (thinking-mode token
+   exhaustion) — fixed with a fresh-retry wrapper (`lib/llm/sarvamRobust.ts`).
+4. Doc AI's `download-url` resolves to a ZIP archive, not raw text — a hand-rolled
+   parser choked on a data-descriptor streaming layout; swapped to `jszip`.
 
 **What's genuinely demo-ready right now**: S1/S2 (LLM adapter, live-verified), S3
-(voice loop, live-verified end-to-end short of an actual human recording), S6/S7
-(i18n + bilingual, live-verified). **What still needs a human before the demo**: one
-real microphone test of `/playground/voice` (the fix above should be tested against
-real speech), and ideally a native Tamil/Hindi speaker's 5-minute review of the UI copy.
+(voice loop, live-verified end-to-end including a real human mic test), S4 (Doc AI,
+full digitise-to-verdict loop live), S5 (self-hosted agents, live), S6/S7 (i18n +
+bilingual, live-verified). **Still worth doing before the demo**: a native Tamil/Hindi
+speaker's 5-minute review of the UI copy, and a proper recorded demo video/audio
+fixtures for submission evidence (see individual S-blocks for specifics).
 
 (entries start here, oldest-numbered first below; TASKS T1-T6 predate the S1-S7
 renumbering and are kept for their detail — see each S-block above the matching T-block
@@ -568,7 +577,56 @@ Goal: reduce how often sarvam-105b's thinking mode silently eats the whole
   3. Sanity-check whether `lib/askquotra/`'s contract should actually just be folded into
      `lib/verdict/` or kept separate — a real product decision, not mine to make blind.
 
-## S4 — Vision Document Digitization · CUT for today · confirmed 2026-08-09
+## S4 — Vision Document Digitization · UN-CUT, done, PASS · reopened + built same day
+
+**Reverses the earlier same-day cut below.** Gabriel found that `dashboard.sarvam.ai`
+now redirects to `indus.sarvam.ai` — Sarvam relaunched their developer platform, and
+Indus's own "Doc Intelligence" tab ships real, documented REST endpoints that did not
+exist at `docs.sarvam.ai/docai` when T5's original research ran (2026-08-08). The
+original "no REST API" finding was accurate for what existed at the time; it just went
+stale within about 24 hours. Confirmed the real contract straight from Indus's own cURL
+code samples:
+- `POST /doc-ai/v1/job/digitise` (multipart: file, language, output_format) → `201 {job_id, status:"pending", run_id}`
+- `GET /doc-ai/v1/job/<JOB_ID>/status` → poll until `completed|partially_completed|failed|rejected`
+- `GET /doc-ai/v1/job/<JOB_ID>/download-url` → mints a URL; fetching THAT returns the rendered output
+
+- Landed: `lib/docai/sarvam.ts` (real `digestTenderPdf()`), `checks/sarvam-docai.ts`
+  (rewritten for the live path), `checks/sarvam-docai-verdict-e2e.ts` (new — proves the
+  actual S4 acceptance bar). Added `jszip` as a real dependency (see below for why).
+- Check: `NEXT_PUBLIC_SARVAM_API_KEY=... npx tsx checks/sarvam-docai.ts` → **7/7 PASS
+  live** against the real `fixtures/tender-gem-9679256.pdf`: job completed in ~20-24s,
+  **7 pages** returned (matches this PDF's actual known page count exactly), 100% of
+  pages non-empty, real bilingual Hindi/English content confirmed (mentions EMD and
+  CCTV/surveillance, the fixture's real subject matter — not noise).
+  `npx tsx checks/sarvam-docai-verdict-e2e.ts` → **3/3 PASS live** — the digitised,
+  page-tagged text was fed into `lib/verdict/prompt.ts` as the tender's real full
+  document (`fullTextAvailable: true`) and a live verdict call cited REAL page numbers
+  (1, 2, 4) that are all within the document's actual 7-page range. **This is S4's own
+  acceptance bar** ("Fixture GeM PDF → digitized text → compiled constraint program →
+  verdict, end-to-end, live, with page-level citations") — met, live, today.
+  `npm run check` (tsc) → clean.
+- **Live bug found and fixed mid-build**: the `download-url` endpoint doesn't return raw
+  markdown — it resolves to a **ZIP archive** (confirmed: content starts with `PK`, the
+  ZIP magic number, containing `<filename>/<name>.md`). A first hand-rolled ZIP parser
+  hit "unexpected end of file" against the real archive — it uses a data-descriptor-
+  after-data streaming layout (sizes aren't in the local file header), a real and fairly
+  common ZIP variant that's fiddly to parse correctly by hand. Swapped to `jszip`
+  (well-tested, handles this correctly) rather than keep debugging binary format edge
+  cases live — the right call under today's time pressure.
+- **No constraint compiler exists in this trimmed lane** (`lib/constraints/compiler.ts`
+  named in the original S4 brief was never built here, same gap as S2's missing
+  eligibility/bidpack types) — the e2e check wires digitised text directly into
+  `buildVerdictPrompt` instead, which is what a real compiler would also ultimately feed.
+  The verdict engine's `fullTextAvailable: true` branch (real page citations vs.
+  listing-level `page: null`) worked exactly as designed the first time it saw a real
+  digitised document.
+- Needs Gabriel: decide whether `lib/constraints/compiler.ts` is worth building as its
+  own step before merge, or whether feeding digitised text straight into the verdict
+  prompt (proven above) is good enough for the real product too.
+
+---
+
+## S4 — Vision Document Digitization · CUT for today (SUPERSEDED — see above) · confirmed 2026-08-09
 
 Re-confirming the T5 finding below under the new S-numbering (SARVAM-LANE-TASKS.md S1
 called for a "1-hour spike FIRST; if blocked, report finding same day" — that already
