@@ -1,12 +1,15 @@
 # Quotra × Sarvam — the build lane
 
-**Read this first. Then `SARVAM-API-NOTES.md`. Then work through `TASKS/` in order.**
+**Read this first. Then `SARVAM-LANE-TASKS.md` (the executable spec, tasks S1–S7 — approved 2026-08-09). Then `SARVAM-API-NOTES.md`.**
+
+> **2026-08-09 update:** `TASKS/T1–T7` are superseded by **`SARVAM-LANE-TASKS.md`** — new centerpiece (**Voice Mode**, a fullscreen conversational voice agent), **self-hosted agents** replacing the Claude managed agents, and the **phone agent (T6) is cut**. S1 (live model/endpoint audit) blocks everything — start there. Global rule: live-fire verified or it isn't done.
 
 This is a **standalone, disposable build lane**: everything needed to build Quotra's
 Sarvam components lives here — frozen contracts, a runnable Next.js playground, real
-fixtures, and seven task briefs written so an AI coding agent (Claude Code, Codex, etc.)
-can pick each one up directly. The product itself lives in a separate private repo; the
-components built here get merged into it tonight. **You never need the product repo.**
+fixtures, and task briefs written so an AI coding agent (Claude Code, Codex, etc.)
+can pick each one up directly. The product itself lives in a separate repo
+(`gabrielantonyxaviour/quotra-sarvam-ai`); the components built here get merged into it
+(rehearsal merge Wed 2026-08-12, final merge T-2 days before the event). **You never need the product repo.**
 
 ## What Quotra is (60 seconds)
 
@@ -14,8 +17,9 @@ Quotra reads Indian government tenders (CPPP/GeM) for a manufacturing MSME and r
 GO / NO-GO / FIXABLE verdict where **every reason cites a clause**, an eligibility matrix
 mapped to the company's document vault, and a drafted bid pack. v1 runs on Anthropic
 Claude. **v2 — this lane — re-cuts the intelligence on Sarvam's stack** for the Sarvam
-hackathon: `sarvam-105b` reasoning, voice in/out (Saaras/Bulbul), bilingual outputs, and
-a phone line you can call and talk to about live tenders.
+hackathon: `sarvam-105b` reasoning for every inference, Voice Mode (Saaras codemix in,
+Bulbul v3 out, data cards rendered from structured intents), bilingual outputs, Sarvam
+Vision tender digitization, and self-hosted watcher/deep-reader agents.
 
 ## Setup (10 minutes)
 
