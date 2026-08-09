@@ -623,6 +623,36 @@ code samples:
 - Needs Gabriel: decide whether `lib/constraints/compiler.ts` is worth building as its
   own step before merge, or whether feeding digitised text straight into the verdict
   prompt (proven above) is good enough for the real product too.
+- **Follow-up: live UI playground added** — `app/playground/docai/page.tsx`. Upload a
+  PDF, watch it digitise, browse the real per-page output in the browser (same
+  "playground, not a feature" pattern as `/playground/voice`).
+  - Made `lib/docai/sarvam.ts` genuinely browser-safe: it originally used Node's
+    `Buffer` internally (`Buffer.from`, `.readUInt32LE`, `.toString("utf8")`), which
+    isn't polyfilled in the Next.js client bundle (confirmed against `lib/voice/
+    sarvam.ts`'s own existing Buffer-availability check, which anticipates exactly
+    this). Rewrote the ZIP-detection/decode path with `Uint8Array`/`DataView`/
+    `TextDecoder` — works identically in Node (checks) and the browser (this page).
+  - **Live bug found and fixed**: a real hydration mismatch — `hasKey` was
+    initialized via a `useState(() => ...)` lazy initializer that read `localStorage`
+    directly, which runs during the render pass (including hydration) and has no
+    `window` on the server, so server and client rendered different HTML for the
+    key-input card. Same class of bug `/playground/voice`'s `LanguageToggle` already
+    hit once before (see the earlier "fix: hydration mismatch in LanguageToggle" log)
+    — fixed the same way: default `false`, set the real value in a `useEffect` after
+    mount.
+  - Verified live in a real browser (Chrome, via the extension): page loads with zero
+    console errors post-fix, key-saved state persists correctly, file input +
+    language picker + Digitise button all render. **The literal "select a PDF via the
+    native OS file picker and click Digitise" step could not be completed by me** —
+    browser file inputs require a real OS-level file-picker interaction that no tool
+    available here can drive (an automated file-upload attempt hit a harness-side
+    validation error, and a page script has no permission to read arbitrary local
+    filesystem paths into a File object — that's a real browser security boundary,
+    not a bug). The underlying digitise pipeline this page calls is the exact same
+    live-proven code path as `checks/sarvam-docai.ts` (7/7 PASS) and
+    `checks/sarvam-docai-verdict-e2e.ts` (3/3 PASS) — only the "click through a native
+    file dialog" interaction itself is unverified by me. **Needs a human to pick a
+    PDF once and confirm the browser round-trip.**
 
 ---
 

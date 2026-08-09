@@ -129,9 +129,10 @@ const ZIP_LOCAL_FILE_SIG = 0x04034b50;
  *  correctly by hand; jszip handles this (and zip64/encryption edge cases)
  *  correctly, so this uses it rather than debugging binary format edge cases
  *  live. Extracts every .md/.txt entry, concatenated in archive order.
- */
-async function extractTextEntriesFromZip(buf: Buffer): Promise<string> {
-  const zip = await JSZip.loadAsync(buf);
+ *  Takes a Uint8Array (not Node's Buffer) — this module runs client-side
+ *  too (app/playground/docai), where Buffer isn't polyfilled. */
+async function extractTextEntriesFromZip(bytes: Uint8Array): Promise<string> {
+  const zip = await JSZip.loadAsync(bytes);
   const parts: string[] = [];
   const names = Object.keys(zip.files).filter((n) => /\.(md|txt)$/i.test(n)).sort();
   for (const name of names) {
@@ -153,12 +154,13 @@ async function fetchDigitisedContent(key: string, jobId: string): Promise<string
 
   const contentRes = await fetch(url);
   if (!contentRes.ok) throw new Error(`Fetching digitised content from the minted URL failed (HTTP ${contentRes.status})`);
-  const buf = Buffer.from(await contentRes.arrayBuffer());
+  const arrayBuf = await contentRes.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuf);
 
-  const isZip = buf.length >= 4 && buf.readUInt32LE(0) === ZIP_LOCAL_FILE_SIG;
-  if (!isZip) return buf.toString("utf8"); // defensive: in case Sarvam ever returns plain text directly
+  const isZip = bytes.length >= 4 && new DataView(arrayBuf).getUint32(0, true) === ZIP_LOCAL_FILE_SIG;
+  if (!isZip) return new TextDecoder("utf-8").decode(bytes); // defensive: in case Sarvam ever returns plain text directly
 
-  const text = await extractTextEntriesFromZip(buf);
+  const text = await extractTextEntriesFromZip(bytes);
   if (!text.trim()) throw new Error("Doc AI download ZIP contained no .md/.txt entries");
   return text;
 }
