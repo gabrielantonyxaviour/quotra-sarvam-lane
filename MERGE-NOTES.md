@@ -86,6 +86,66 @@ Template:
      place from the zip you sent, confirmed `.gitignore`d (`git check-ignore` verified) —
      not committed, not going in this PR.
 
+## S2 — Live conformance suite (sarvam-105b verdicts) · done, HONEST partial pass · ~1h
+
+- Landed: `checks/sarvam-conformance.ts` — runs the REAL production path
+  (`buildVerdictPrompt` → `completeJSONWith(sarvamComplete)` → `verdictSchema`, the
+  same one-corrective-retry contract every feature gets) against all 3 fixture
+  tenders, live, and scores citation fidelity (word-overlap of each reason's text
+  against the FULL prompt content the model saw — not just `tender.rawText`, since
+  legitimate citations also reference the company profile / product master /
+  structured tender fields `buildVerdictPrompt` includes).
+- Check: `NEXT_PUBLIC_SARVAM_API_KEY=... npx tsx checks/sarvam-conformance.ts` → run
+  **twice** for a consistency read. Run 1: 1/3 tenders fully conformant (8/9 reasons
+  grounded, 89%). Run 2: 0/3 fully conformant (5/8 grounded, 63%). **Not
+  deterministic** — same prompts, same schema, materially different outcomes
+  run-to-run. `npm run check` (tsc) → clean.
+- **Real live finding (the actual point of S1/S2 — "live-fire or it isn't done"):**
+  `gem-9679256` hard-failed **both** runs — sarvam-105b's thinking mode consumed the
+  ENTIRE 4096-token budget (Starter-plan HARD cap, confirmed: a `max_tokens: 8192`
+  probe got HTTP 400 `"exceeds the maximum allowed for sarvam-105b for your
+  subscription tier (starter): 4096"`) on the ORIGINAL call AND the one corrective
+  retry, both times returning `finish_reason: "length"` with EMPTY content. No
+  `reasoning_effort` value below the documented default `"low"` exists (`"minimal"`
+  was rejected: API only accepts `low`/`medium`/`high`) — there is no way to force
+  less thinking. Root cause looks content-dependent, not size-dependent: the tender
+  that reliably fails has one of the SHORTEST `rawText`s (307 chars) of the three
+  fixtures — a sparser listing seems to make the model reason longer about what it
+  can't determine, not less.
+- **This is flaky, not broken**: manually re-running the exact same `cppp-28403`
+  call twice (outside the check) got `finish_reason: "length"` (empty) once and
+  `finish_reason: "stop"` (clean 703-token answer, well-cited) the next — pure
+  run-to-run variance at `temperature: 0.2`. `completeJSONWith`'s existing
+  one-corrective-retry (shared, provider-agnostic, `lib/llm/client.ts` — nothing S2
+  needed to add) already covers this most of the time; it just isn't a 100%
+  guarantee against two unlucky draws in a row, which is exactly what happened to
+  `gem-9679256`.
+- **Honest verdict against S2's pass bar** ("100% citation fidelity on fixtures, no
+  schema failures after single retry"): **not met.** Citation fidelity on the
+  reasons that DO land is strong (63-89% of individual reasons grounded across two
+  runs — most misses are borderline ~0.4 ratio, not fabrication), but one fixture
+  tender is a real, reproducible reliability risk for the demo. Per the project's
+  own rule ("hybrid fallback allowed — if a feature fails, it stays Anthropic;
+  hiding failure is the only real failure"), **not silently shipping this as
+  "done."**
+- Needs Gabriel / next steps if time allows:
+  1. **Demo risk mitigation**: avoid `gem-9679256` specifically as a live demo
+     example (or re-roll if it happens to fail on stage — the corrective retry
+     means a second attempt is likely to work). Prefer `cppp-2026-drdo-921134-1`
+     (passed cleanly, 4/4 grounded) as the safe demo fixture.
+  2. **Real fix, if there's time later today**: add a second-tier retry
+     specifically for `finish_reason: "length"` with empty content (distinct from
+     `completeJSONWith`'s schema-validation retry, which already fires on this but
+     only once) — e.g. a short "answer more concisely" nudge in the correction
+     message to bias the model away from long internal reasoning. Not attempted
+     here — S3 (Voice Mode) is the priority for today's remaining hours per product
+     decision, and this is a pre-existing Sarvam-platform behavior, not a broken
+     Quotra feature.
+  3. **json_schema decision from S1 stands** — this suite ran through it and the
+     schema-valid outputs were clean every time; the failures are 100% the
+     empty-content/thinking-budget issue, never a malformed JSON that passed schema
+     validation.
+
 ## T7 — Indic UI copy (ta/hi dictionaries + LanguageToggle) · done · ~30min
 
 - Landed: `lib/i18n/dictionaries/ta.ts`, `lib/i18n/dictionaries/hi.ts` (23/23 seed keys,
