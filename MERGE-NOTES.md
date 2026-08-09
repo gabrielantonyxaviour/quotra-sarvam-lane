@@ -290,6 +290,17 @@ Template:
   3. Sanity-check whether `lib/askquotra/`'s contract should actually just be folded into
      `lib/verdict/` or kept separate — a real product decision, not mine to make blind.
 
+## S4 — Vision Document Digitization · CUT for today · confirmed 2026-08-09
+
+Re-confirming the T5 finding below under the new S-numbering (SARVAM-LANE-TASKS.md S1
+called for a "1-hour spike FIRST; if blocked, report finding same day" — that already
+happened, see T5 below). **No new access materialized** — still dashboard-only, still
+needs a Gabriel-owned dashboard login to even attempt the fallback. Given the compressed
+today-only timeline (buildathon submission 7pm, not the doc's original multi-day plan),
+**formally cutting S4 from today's scope** rather than burning time waiting on Gabriel's
+dashboard login. If Gabriel logs in and finds API access mid-afternoon, `lib/docai/
+sarvam.ts`'s stub is exactly where to drop in a real client — nothing else blocks it.
+
 ## T5 — Doc AI digitisation · GATED at Step 0 · ~30min (timeboxed research, as instructed)
 
 - Landed: `lib/docai/sarvam.ts` (honest "not available" stub, not a speculative
