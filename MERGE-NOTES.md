@@ -632,7 +632,46 @@ code samples:
     sarvam.ts`'s own existing Buffer-availability check, which anticipates exactly
     this). Rewrote the ZIP-detection/decode path with `Uint8Array`/`DataView`/
     `TextDecoder` — works identically in Node (checks) and the browser (this page).
-  - **Live bug found and fixed**: a real hydration mismatch — `hasKey` was
+  - **Live bug found and fixed (the important one)**: the page originally called
+    `lib/docai/sarvam.ts`'s `digestTenderPdf()` directly from the browser, mirroring
+    how `/playground/voice` calls STT/TTS/Chat/Translate directly — those all support
+    browser CORS (proven live). **Doc AI does not.** Real user testing (uploaded a real
+    10MB PDF) hit "Failed to fetch"; isolated it by calling the endpoint directly from
+    the browser console — network capture showed only an `OPTIONS` preflight (204),
+    **no POST ever sent**. The browser blocked the real request before it left the
+    machine. Sarvam's other endpoints are built for real-time client use (voice apps
+    need direct mic-to-browser calls); Doc AI's own Indus quickstart only shows SDK/
+    cURL samples, consistent with server-side-only design.
+    - **Fix**: added `app/api/docai/digitise/route.ts`, a same-origin Next.js API route
+      that proxies the call server-side (browser → own-origin has no CORS restriction;
+      server → api.sarvam.ai is a normal server-to-server call, where CORS — a
+      browser-only mechanism — doesn't apply at all). The page now POSTs to
+      `/api/docai/digitise` with the file + the BYOK key (read from
+      `localStorage`, forwarded explicitly in the request body — the Next.js server
+      process has no access to the browser's localStorage, and this app has no
+      guaranteed server-side `NEXT_PUBLIC_SARVAM_API_KEY` set) instead of calling
+      Sarvam directly.
+    - **This breaks `/playground/voice`'s established "client-only, no server routes"
+      pattern** — a deliberate, justified exception: that pattern is a design choice
+      for endpoints that support it, not a hard rule, and Doc AI genuinely requires
+      server-side proxying. Documented plainly in the route's own file header so it
+      isn't mistaken for scope creep.
+    - Verified end-to-end through the REAL route from a real browser tab: POSTing the
+      actual fixture PDF through `/api/docai/digitise` → `200`, 7 pages, correct
+      bilingual content, 22.6s — matching the Node check script exactly.
+    - `lib/docai/sarvam.ts`'s `digestTenderPdf()` gained an optional `apiKey` param
+      (falls back to `resolveSarvamKey()` for Node callers) so the API route can pass
+      the browser-supplied key through explicitly.
+  - **Second live bug found and fixed**: a race condition — `handleDigitise` had an
+    unconditional `setTimeout(() => setPhase("polling"), 800)` for a fake progress
+    indicator. When the CORS failure above hit (which fails almost instantly, well
+    under 800ms), the `catch` block correctly reset `phase` to `"idle"` — then 800ms
+    later the stale timeout fired anyway and clobbered it back to `"polling"`,
+    producing the confusing screenshot the user reported: an error card AND a stuck
+    "Digitising…" button shown together. Fixed by removing the timer entirely and
+    collapsing the phase model to a single `"processing"` state driven only by the
+    real fetch's await boundary — no more time-based guessing.
+  - **Also a real hydration mismatch, found and fixed earlier** — `hasKey` was
     initialized via a `useState(() => ...)` lazy initializer that read `localStorage`
     directly, which runs during the render pass (including hydration) and has no
     `window` on the server, so server and client rendered different HTML for the
@@ -640,19 +679,16 @@ code samples:
     hit once before (see the earlier "fix: hydration mismatch in LanguageToggle" log)
     — fixed the same way: default `false`, set the real value in a `useEffect` after
     mount.
-  - Verified live in a real browser (Chrome, via the extension): page loads with zero
-    console errors post-fix, key-saved state persists correctly, file input +
-    language picker + Digitise button all render. **The literal "select a PDF via the
-    native OS file picker and click Digitise" step could not be completed by me** —
-    browser file inputs require a real OS-level file-picker interaction that no tool
-    available here can drive (an automated file-upload attempt hit a harness-side
-    validation error, and a page script has no permission to read arbitrary local
-    filesystem paths into a File object — that's a real browser security boundary,
-    not a bug). The underlying digitise pipeline this page calls is the exact same
-    live-proven code path as `checks/sarvam-docai.ts` (7/7 PASS) and
-    `checks/sarvam-docai-verdict-e2e.ts` (3/3 PASS) — only the "click through a native
-    file dialog" interaction itself is unverified by me. **Needs a human to pick a
-    PDF once and confirm the browser round-trip.**
+  - **Fully verified end-to-end through the real HTTP path**, not just via check
+    scripts: with the file input still blocked by the native-OS-picker limitation
+    above (no available tool can drive a real file-choose dialog), tested by fetching
+    the fixture PDF as a `Blob` inside the live browser tab (`fetch()` a temporary
+    `public/` copy) and POSTing it through the exact same `fetch('/api/docai/
+    digitise', ...)` call `handleDigitise` makes — **`200`, 7 pages, correct bilingual
+    content, 22.6s**, matching the Node check script number for number. The ONLY thing
+    left unverified by me is the literal mouse click through the OS file-picker
+    dialog; the entire pipeline behind it (upload → server route → Sarvam → unzip →
+    per-page display) is now proven live through the real browser, not just Node.
 
 ---
 

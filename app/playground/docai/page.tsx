@@ -8,15 +8,17 @@
 // state.
 
 import { useEffect, useState } from "react";
-import {
-  digestTenderPdf,
-  DocAiMissingKeyError,
-  type DigitisedPage,
-  type DigitiseStatus,
-} from "@/lib/docai/sarvam";
+import type { DigitisedPage, DigitiseStatus } from "@/lib/docai/sarvam";
 import { SARVAM_KEY_STORAGE_KEY } from "@/lib/llm";
 
-type Phase = "idle" | "submitting" | "polling" | "downloading" | "done";
+// Calls /api/docai/digitise (a server route, NOT lib/docai/sarvam.ts directly)
+// — live testing found Sarvam's Doc AI endpoint doesn't grant browser CORS
+// (preflight OPTIONS returns 204 but the real POST never goes through,
+// surfacing as an opaque "Failed to fetch"), unlike Chat/STT/TTS/Translate
+// which /playground/voice already proved work fine directly from the
+// browser. See app/api/docai/digitise/route.ts's header for the full story.
+
+type Phase = "idle" | "processing" | "done";
 
 export default function DocAiPlaygroundPage() {
   // Deliberately starts false and is set in an effect, not a useState lazy
@@ -56,22 +58,30 @@ export default function DocAiPlaygroundPage() {
     setExpandedPage(null);
 
     const started = Date.now();
+    setPhase("processing");
     try {
-      setPhase("submitting");
-      // digestTenderPdf itself does submit -> poll -> download internally;
-      // the phase labels here are best-effort UI feedback, not driven by
-      // real progress callbacks from the lib function.
-      setTimeout(() => setPhase("polling"), 800);
-      const result = await digestTenderPdf(file, { filename: file.name, language });
-      setPhase("downloading");
-      setPages(result.pages);
-      setJobId(result.jobId);
-      setStatus(result.status);
+      const apiKey = window.localStorage.getItem(SARVAM_KEY_STORAGE_KEY)?.trim();
+      if (!apiKey) {
+        setHasKey(false);
+        throw new Error("No Sarvam API key found — save one above first.");
+      }
+
+      const form = new FormData();
+      form.append("file", file, file.name);
+      form.append("language", language);
+      form.append("apiKey", apiKey);
+
+      const res = await fetch("/api/docai/digitise", { method: "POST", body: form });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+
+      setPages(body.pages);
+      setJobId(body.jobId);
+      setStatus(body.status);
       setDurationMs(Date.now() - started);
       setPhase("done");
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
-      if (err instanceof DocAiMissingKeyError) setHasKey(false);
       setError(err.message);
       setPhase("idle");
     }
@@ -127,9 +137,11 @@ export default function DocAiPlaygroundPage() {
           </button>
         </div>
         {file && <p className="muted" style={{ marginTop: "0.5rem" }}>{file.name} — {(file.size / 1024).toFixed(0)} KB</p>}
-        {phase === "submitting" && <p className="muted" style={{ marginTop: "0.5rem" }}>Submitting job…</p>}
-        {phase === "polling" && <p className="muted" style={{ marginTop: "0.5rem" }}>Job running — this can take up to ~2 minutes for longer documents…</p>}
-        {phase === "downloading" && <p className="muted" style={{ marginTop: "0.5rem" }}>Fetching + unzipping the rendered output…</p>}
+        {phase === "processing" && (
+          <p className="muted" style={{ marginTop: "0.5rem" }}>
+            Submitting, then polling until done — this can take up to ~2 minutes for longer documents…
+          </p>
+        )}
       </div>
 
       {error && (

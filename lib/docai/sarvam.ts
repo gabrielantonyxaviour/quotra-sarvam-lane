@@ -189,12 +189,19 @@ function splitIntoPages(markdown: string): DigitisedPage[] {
  * are frequently bilingual Hindi/English — "en-IN" is the default here since
  * the constraint pipeline downstream reads English, but pass "hi-IN" for a
  * Hindi-primary document if needed.
+ *
+ * `opts.apiKey`: pass explicitly when calling from a server context that
+ * received the key over the wire (see app/api/docai/digitise/route.ts) —
+ * resolveSarvamKey()'s localStorage branch has no `window` on the server,
+ * and this app has no server-side NEXT_PUBLIC_SARVAM_API_KEY guaranteed set
+ * (BYOK keys live in the browser only). Falls back to resolveSarvamKey()
+ * when omitted, for Node check-script callers that DO set the env var.
  */
 export async function digestTenderPdf(
   file: Blob | Buffer,
-  opts?: { filename?: string; language?: string },
+  opts?: { filename?: string; language?: string; apiKey?: string },
 ): Promise<{ pages: DigitisedPage[]; jobId: string; status: DigitiseStatus }> {
-  const key = resolveSarvamKey();
+  const key = opts?.apiKey ?? resolveSarvamKey();
   const blob = file instanceof Blob ? file : new Blob([new Uint8Array(file)], { type: "application/pdf" });
   const filename = opts?.filename ?? "document.pdf";
   const language = opts?.language ?? "en-IN";
