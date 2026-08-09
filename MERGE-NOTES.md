@@ -122,6 +122,70 @@ for what changed today)
      place from the zip you sent, confirmed `.gitignore`d (`git check-ignore` verified) —
      not committed, not going in this PR.
 
+## S5 — Self-hosted Watcher + Deep-reader agents · done, PASS · ~45min
+
+- Landed: `lib/agents/runtime.ts` (the fetch→reason→act→record loop),
+  `lib/agents/watcher.ts`, `lib/agents/deep-reader.ts`, `checks/sarvam-agents.ts`.
+- Check: `NEXT_PUBLIC_SARVAM_API_KEY=... npx tsx checks/sarvam-agents.ts` →
+  **12/12 PASS live**. Watcher correctly identified a deliberately-omitted fixture
+  tender as NEW and a deliberately-mutated one as CHANGED (closeAt), with a
+  model-written summary that only cited real ids from the diff. Deep-reader
+  extracted 8 cited clauses / 3 requirements / 4 unknowns from a fixture tender,
+  every clause carrying clause+page+text. `npm run check` (tsc) → clean.
+- **"No Anthropic dependency" proven two ways, not just claimed:**
+  1. **Structurally**: both agents' only LLM call goes through `runAgent()` in
+     `runtime.ts`, which calls `sarvamComplete` DIRECTLY — never the
+     provider-dispatched `complete()`/`completeJSON()` in `lib/llm/index.ts` that
+     can route to Anthropic depending on the active-provider toggle. There is no
+     code path in these two agent files that can reach Anthropic.
+  2. **Empirically**: the check clears `process.env.ANTHROPIC_API_KEY` before
+     either agent runs, and both still succeed.
+- **Architecture**: the diff itself (new-vs-changed tender detection) is PLAIN
+  CODE, not model output — the model only writes the human-readable summary and
+  cites ids it's handed; `validateWatcherOutput` rejects any id the model invents
+  that wasn't actually in the diff. Same citation-or-flag discipline as
+  `lib/verdict/prompt.ts` carries over to Deep-reader's clause extraction.
+  `runWatcherSkippingIfNoDiff` skips the model call entirely when nothing
+  changed — proven in the check (no wasted API spend on a no-op sweep).
+- **Live finding — the SAME thinking-mode/empty-content issue documented in S2's
+  conformance suite hit this too**: first two runs of the Watcher call failed with
+  empty content (`finish_reason: "length"`) because I'd set `maxTokens: 1024`,
+  under the 4096 floor `SARVAM-API-NOTES.md` itself warns is needed. Fixed by
+  raising it to 4096 (matching every other feature in this lane) — clean after
+  that. **This is now going to get a proper fix** (see the next MERGE-NOTES entry
+  below) rather than just raising the ceiling and hoping.
+- **Latency flag**: Deep-reader took 51s on this run (105b's reasoning-mode
+  variance, same pattern S1-S3 already found) — fine for a background sweep job,
+  NOT fine if anyone ever wires this synchronously into a user-facing wait.
+- **Snapshot source is pluggable, fixture-backed today**: `fetchCurrentSnapshot`/
+  `fetchPreviousSnapshot` are plain async functions the caller supplies —
+  `checks/sarvam-agents.ts` wires them to the fixture tender set. **Live GeM/CPPP
+  portal scraping was explicitly out of scope today** (auth, CAPTCHA, rate limits,
+  ToS — its own project, not a today-compressed-timeline task); the agent
+  mechanism itself (diff → reason → normalized `Tender[]` output) is real and
+  live-tested, only the snapshot SOURCE needs a real scraper wired in later.
+- **Hosting decision — the open question SARVAM-LANE-TASKS.md flagged for
+  Gabriel, answered with a recommendation**:
+  - **Small always-on Node service (Fly.io/Railway/small VPS) — recommended for
+    now.** This code runs unchanged there: `fixtures/load.ts` uses `node:fs`
+    directly, which doesn't exist in Cloudflare Workers' runtime, and Deep-reader's
+    51s call would blow past most Workers CPU-time tiers. A cron/setInterval loop
+    on a tiny always-on box is the least-new-infrastructure path and matches T6's
+    phone-agent, which already needs its own small always-on host anyway — same
+    box could plausibly run both.
+  - **Cloudflare Worker — viable later, not today.** Would need: swapping
+    `node:fs` fixture/snapshot reads for KV/R2 or an inlined data source, and
+    either accepting Workers' CPU-time limits (fine if Deep-reader moves to
+    Workers' async/queue pattern instead of a synchronous request) or paying for
+    a higher tier. Cheaper at rest (scales to zero) if the sweep cadence is sparse.
+  - Gabriel's call to finalize — this is a recommendation with the concrete
+    blockers named, not a unilateral decision.
+- Needs Gabriel:
+  1. Confirm the hosting choice above (or override it).
+  2. When real portal scraping is built, it only needs to satisfy
+     `() => Promise<Tender[]>` — wire it into `fetchCurrentSnapshot` and
+     everything downstream (diff, model summary, output shape) needs no changes.
+
 ## S6/S7 — Live check of i18n + bilingual translate layer · done, PASS · ~20min
 
 - Check: `NEXT_PUBLIC_SARVAM_API_KEY=... npx tsx checks/sarvam-i18n.ts` → **10/10 PASS**,
