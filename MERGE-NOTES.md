@@ -267,6 +267,55 @@ Template:
   3. A quick listen to `out-ta.wav`/`out-en.wav` once live, to sanity-check the
      `DEFAULT_SPEAKER` picks.
 
+## S3 — Voice Mode full-loop live proof · done, PASS · ~30min
+
+- Landed: `checks/sarvam-voice-e2e.ts` — proves the FULL loop (Saaras STT →
+  sarvam-105b Ask-Quotra → Sarvam Translate → Bulbul TTS) live, end-to-end,
+  **without a physical microphone** (this build environment still has none — same
+  gap T2/T3 below already flag). Substitute: synthesize the SPOKEN QUESTION with
+  Bulbul TTS first, then feed that audio into the exact same `transcribe()` the
+  playground page calls. This exercises every real wire call in the pipeline; it
+  does NOT replace a human recording for the demo video (synthetic TTS audio can't
+  prove human-speech STT accuracy) but DOES prove the mechanics work live before
+  anyone touches a mic on stage.
+- Check: `NEXT_PUBLIC_SARVAM_API_KEY=... npx tsx checks/sarvam-voice-e2e.ts` →
+  **2/2 scenarios PASS live**:
+  - **Tamil** ("இந்த வாரத்தில் என்ன புதிய டெண்டர்கள் வந்திருக்கு?" — S3 spec
+    scenario 1's intent): STT correctly detected `ta-IN`, transcribed cleanly,
+    105b answered in English citing all 3 fixture tenders, translated back to
+    Tamil, spoke it — 21.3s total.
+  - **Hindi** ("इस टेंडर में EMD कितना है?" — S3 spec scenario 3's intent): STT
+    detected `hi-IN`, 105b correctly said EMD is "not exposed in the listing"
+    (an honest unknown, not a guess — the truth-discipline rule holding under
+    real load), 1 citation, 13.1s total.
+  - `npm run check` (tsc) → clean.
+- **Verified in the live browser** (`npm run dev`, `/playground/voice`): page
+  loads clean, no console errors; saving a key to `localStorage.quotra_sarvam_key`
+  correctly hides the key-entry card; language toggle (EN/த/हி) and the spoken-
+  language picker (Auto/EN/த/हி) both render and are clickable. **Could not
+  exercise "Hold to talk" itself** — this sandboxed browser has no microphone
+  hardware to grant `getUserMedia` against, so the actual push-to-talk recording
+  path is untested by me. The E2E script above proves everything downstream of
+  the mic (STT→LLM→translate→TTS) already works; only the literal
+  browser-mic-permission-and-record step needs a human.
+- **Latency note against S3's success bar** ("speech-out starts ≤4s after end of
+  user speech"): the FULL round trip (STT + LLM + translate + TTS all four calls)
+  took 13-21s in these two runs — well over 4s. Breaking that down, the 105b call
+  itself was 5.5-8.2s of that (consistent with S1/S2's finding that reasoning-mode
+  latency varies a lot run to run). **This is a real risk to flag before the demo**:
+  either the 4s bar needs to be read as "time-to-first-audio-byte with streaming"
+  (not implemented here — this playground awaits the full answer before speaking)
+  or the bar itself needs resetting against what Starter-tier `sarvam-105b`
+  actually delivers under `reasoning_effort: low`.
+- Needs Gabriel / next steps:
+  1. **Human demo recording still the one gap** — someone with a real microphone
+     needs to actually hold-to-talk on `/playground/voice` at least once for the
+     genuine human-speech proof (`fixtures/playground-voice-demo.mp4`). Everything
+     the recording would exercise downstream of the mic is now proven live.
+  2. **Decide how to handle the latency gap** before the demo — either narrate
+     "thinking..." explicitly during the wait (the UI already shows this via
+     `phase === "thinking"`), or don't promise sub-4s in the pitch.
+
 ## T3 — Ask Quotra by voice playground · done, human demo recording missing · ~1.5h
 
 - Landed: `app/playground/voice/page.tsx`, `lib/askquotra/contract.ts` (the ask-quotra
