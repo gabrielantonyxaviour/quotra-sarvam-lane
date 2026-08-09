@@ -24,8 +24,8 @@
 import { loadCompany, loadExperience, loadProducts, loadTenders } from "../fixtures/load";
 import { buildVerdictPrompt } from "../lib/verdict/prompt";
 import { validateVerdictOutput, verdictSchema, type VerdictModelOutput } from "../lib/verdict/engine";
-import { completeJSONWith, ContractError } from "../lib/llm/client";
-import { sarvamComplete } from "../lib/llm/sarvam";
+import { ContractError } from "../lib/llm/client";
+import { sarvamCompleteJSONRobust } from "../lib/llm/sarvamRobust";
 import type { BrainProduct, Company, ExperienceRecord, Tender } from "../lib/tenders/types";
 
 const MIN_WORD_LEN = 4;
@@ -70,7 +70,7 @@ async function runOne(tender: Tender, company: Company | null, products: BrainPr
   const { system, messages } = buildVerdictPrompt({ tender, company, products, experience });
   const started = Date.now();
   try {
-    const { data } = await completeJSONWith<VerdictModelOutput>(sarvamComplete, {
+    const { data } = await sarvamCompleteJSONRobust<VerdictModelOutput>({
       feature: "verdict",
       system,
       messages,

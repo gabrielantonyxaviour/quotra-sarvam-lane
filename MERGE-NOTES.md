@@ -122,6 +122,53 @@ for what changed today)
      place from the zip you sent, confirmed `.gitignore`d (`git check-ignore` verified) —
      not committed, not going in this PR.
 
+## Flaky-tender fix — thinking-mode empty-content resilience · done, IMPROVED · ~30min
+
+Follow-up to S2's `gem-9679256` hard failure (documented below) and the same
+failure mode that hit S5's Watcher before its `maxTokens` fix (see S5 block).
+Goal: reduce how often sarvam-105b's thinking mode silently eats the whole
+4096-token budget and returns empty content, WITHOUT editing `lib/llm/client.ts`
+(frozen — see T1/T4's notes on why).
+
+- Landed: `lib/llm/sarvamRobust.ts` — `sarvamCompleteJSONRobust()`, a thin
+  wrapper that re-runs the WHOLE `completeJSONWith` cycle (including its own
+  built-in one corrective retry) up to `freshRetries` additional times
+  (default 1) — each one a CLEAN call with the ORIGINAL prompt, not a growing
+  correction transcript. `client.ts`'s corrective retry appends the failed
+  turn + a correction message before retrying, which grows the prompt rather
+  than giving the model a clean shot; this wrapper's fresh retries are the
+  complement to that, not a replacement.
+- Wired into `checks/sarvam-conformance.ts` (S2) and `lib/agents/runtime.ts`
+  (S5) — both now call `sarvamCompleteJSONRobust` instead of `completeJSONWith`
+  directly.
+- Check: `NEXT_PUBLIC_SARVAM_API_KEY=... npx tsx checks/sarvam-conformance.ts`
+  → `gem-9679256` **no longer hard-fails** (previously: `ContractError` after
+  exhausting the schema-retry too, on 2/2 attempts tested). With the robust
+  wrapper it now reliably returns a real, schema-valid verdict every run tested.
+- **What's left is a measurement artifact in the CHECK SCRIPT, not a product
+  bug** — investigated by hand: the citation-fidelity heuristic (word-overlap
+  between a reason's prose and the source prompt) under-scores reasons that
+  correctly SYNTHESIZE across multiple grounded facts. Example caught live:
+  reason text *"the company lists 'E-Surveillance & CCTV' as a category, but
+  the provided product master shows no CCTV hardware, creating a direct
+  contradiction"* — every fact referenced ("E-Surveillance & CCTV" category,
+  "no category match" in the product master) is verbatim in the source prompt;
+  the LOW word-overlap score comes from the model's own connecting prose
+  ("creating a direct contradiction"), not from fabrication. A verdict reason
+  is supposed to draw a conclusion from cited facts, not just quote them — a
+  pure word-overlap check was always going to undercount that. Not fixing the
+  heuristic further today (diminishing returns vs. remaining time); the actual
+  dangerous bug (hard crash / empty response) is confirmed fixed.
+- **Residual risk, disclosed rather than hidden**: the PRODUCTION verdict path
+  (through frozen `lib/llm/index.ts`) still only gets `client.ts`'s single
+  built-in corrective retry — it does NOT go through
+  `sarvamCompleteJSONRobust`, because doing so would mean either editing the
+  frozen dispatcher or duplicating its provider-routing logic outside this
+  lane's scope. **If the demo hits this failure mode live through the real app
+  (not through today's check scripts), the fix is: ask the question again.**
+  Getting `index.ts` un-frozen to wire the robust wrapper in for real is a
+  decision for whoever owns that file, not made unilaterally here.
+
 ## S5 — Self-hosted Watcher + Deep-reader agents · done, PASS · ~45min
 
 - Landed: `lib/agents/runtime.ts` (the fetch→reason→act→record loop),

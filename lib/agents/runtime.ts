@@ -23,8 +23,8 @@
 // it — there is no code path in this file that can reach client.ts's
 // Anthropic complete().
 
-import { completeJSONWith, ContractError, type ChatMessage, type JsonSchema } from "../llm/client";
-import { sarvamComplete } from "../llm/sarvam";
+import { ContractError, type ChatMessage, type JsonSchema } from "../llm/client";
+import { sarvamCompleteJSONRobust } from "../llm/sarvamRobust";
 
 export type AgentRunLog = {
   agent: string;
@@ -62,7 +62,11 @@ export async function runAgent<TFetched, TReasoned, TAct>(opts: {
   let reasoned: TReasoned;
   let transcriptId: string | null;
   try {
-    const result = await completeJSONWith<TReasoned>(sarvamComplete, {
+    // sarvamCompleteJSONRobust (lib/llm/sarvamRobust.ts), not the raw
+    // completeJSONWith — adds fresh (non-growing) retries for sarvam-105b's
+    // thinking-mode empty-content failures, on top of client.ts's own
+    // corrective retry. See MERGE-NOTES S2/S5 for why this exists.
+    const result = await sarvamCompleteJSONRobust<TReasoned>({
       feature: `agent-${opts.agent}`,
       system: spec.system,
       messages: spec.messages,
