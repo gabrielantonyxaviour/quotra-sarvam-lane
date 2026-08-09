@@ -86,6 +86,28 @@ Template:
      place from the zip you sent, confirmed `.gitignore`d (`git check-ignore` verified) —
      not committed, not going in this PR.
 
+## S6/S7 — Live check of i18n + bilingual translate layer · done, PASS · ~20min
+
+- Check: `NEXT_PUBLIC_SARVAM_API_KEY=... npx tsx checks/sarvam-i18n.ts` → **10/10 PASS**,
+  100% seed coverage confirmed again (no code changes needed — T7 already solid).
+- **Fixed the same key-restore bug as T1's `sarvam-llm.ts`** (see S1 block) in
+  `checks/sarvam-translate.ts` and `checks/sarvam-voice.ts` — both offline suites
+  deleted `NEXT_PUBLIC_SARVAM_API_KEY` for isolation and never restored it before their
+  `liveTests()` ran, so BOTH silently skipped their live halves even with a real key
+  present. Fixed the same way (stash real key in `main()`, restore right before the
+  live section).
+- With that fixed: `npx tsx checks/sarvam-translate.ts` → **24/24 PASS live** — real
+  en→ta and en→hi translation of a verdict reason confirmed non-empty with digits
+  intact (₹4,86,000 and the date both passed through byte-identical), real matrix row
+  round-trip passed. `npx tsx checks/sarvam-voice.ts` → **25/25 PASS** — real Tamil and
+  English TTS round-trips produced non-empty audio (saved to `fixtures/audio/out-ta.wav`
+  / `out-en.wav` for a human to listen to); the STT-fixture-round-trip assertions still
+  SKIP (still no recorded human audio fixtures — unrelated to this fix, same gap T2
+  already flags).
+  `npm run check` (tsc) → clean.
+- **T4's unverified `/translate` response field guess is now confirmed correct**:
+  `translated_text` is the real field name — no code change needed, the guess held.
+
 ## S2 — Live conformance suite (sarvam-105b verdicts) · done, HONEST partial pass · ~1h
 
 - Landed: `checks/sarvam-conformance.ts` — runs the REAL production path
@@ -508,6 +530,52 @@ sarvam.ts`'s stub is exactly where to drop in a real client — nothing else blo
   4. **Deployment before submission**: laptop + ngrok is fine for tonight's demo, not for
      async judge review (a dropped tunnel mid-review has burned this team before per the
      task brief) — decide on Fly.io / Cloudflare container / small VPS and deploy.
+
+## Live fix #4 — playground silently hid empty transcripts, looked like "same answer every time"
+
+Found live-testing the playground with a real human microphone (this build environment
+has none, so this is the first real-mic signal on S3). Symptom reported: asking
+different questions produced the same answer every time. Isolated by testing the LLM
+call directly with 4 distinct hardcoded questions — **it answered all 4 correctly and
+differently** (turnover question → correctly says "needs confirmation, not on file";
+EMD question → correctly cites "not exposed in the listing"; eligibility question →
+correctly cites the CCTV product + Udyam registration). So the LLM/prompt path was never
+the bug. Root cause was upstream and had a **UI bug compounding a real-world audio
+issue**:
+
+1. `app/playground/voice/page.tsx` makes TWO separate STT calls per turn:
+   `mode: "codemix"` (shown in the "You said" box) and a SEPARATE `mode: "translate"`
+   call whose text is what actually gets sent to the LLM as the question — but that
+   text was never displayed anywhere. If `translate`-mode STT comes back empty (which
+   real browser-mic audio can trigger more easily than the clean TTS-synthesized audio
+   this environment's own live tests use — background noise, a short/quiet hold, etc.),
+   the LLM silently receives an empty `QUESTION:` field every time, which produces a
+   generic near-identical "needs confirmation" answer regardless of what was actually
+   asked. **This looks exactly like "same answer every time" from the user's seat.**
+2. **Compounding bug**: the "You said" card only rendered when `codemixText` was
+   *truthy* (`{codemixText && (...)}`) — so when STT genuinely returned an empty
+   string, the whole diagnostic box vanished instead of showing "(empty)". This is what
+   produced the follow-up report "it's also not showing the transcribe of what I'm
+   saying" — the box wasn't broken, it was just hidden by design whenever there was
+   nothing to show, which is the least helpful moment to hide it.
+
+Fixed both, `app/playground/voice/page.tsx`:
+- Changed the render guard to `codemixText !== null` and added an explicit red
+  "(empty — Sarvam heard no speech in that clip...)" message so an empty transcript is
+  now visible instead of invisible.
+- Added a hard client-side guard: recordings under 2000 bytes (a container header with
+  effectively no audio) now short-circuit with a clear error — "Recording was almost
+  empty... the button was likely released before any audio was captured" — instead of
+  making a network call that comes back empty with no explanation.
+- The debug line now shows the recorded clip's byte size, hold duration, and MIME type,
+  AND the actual `translate`-mode question text sent to the LLM (previously only the
+  detected language codes were shown) — so a future occurrence is immediately
+  diagnosable on-screen without DevTools.
+- **Not yet confirmed which specific cause (background noise vs. short hold vs. a
+  genuine Saaras translate-mode quirk on real speech) was the actual trigger** — the
+  fixes above make it self-diagnosing next time it happens rather than claiming to have
+  fixed the underlying audio-capture behavior itself, which needs a live retest with a
+  human mic to confirm.
 
 ## Live fix — T2 STT rejected browser audio (found by Gabriel testing the real key)
 

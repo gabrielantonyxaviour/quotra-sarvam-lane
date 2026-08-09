@@ -92,6 +92,7 @@ export default function VoicePlaygroundPage() {
   const chunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const recordingStartedAtRef = useRef<number>(0);
 
   useEffect(() => {
     setUiLang(activeLanguage());
@@ -132,6 +133,7 @@ export default function VoicePlaygroundPage() {
       };
       recorder.start();
       mediaRecorderRef.current = recorder;
+      recordingStartedAtRef.current = Date.now();
       setPhase("recording");
       recordTimerRef.current = setTimeout(() => stopRecording(), RECORD_HARD_CAP_MS);
     } catch {
@@ -158,8 +160,23 @@ export default function VoicePlaygroundPage() {
   }
 
   async function handleRecordingComplete(audio: Blob) {
+    const recordedMs = Date.now() - recordingStartedAtRef.current;
+    const audioDebug = `clip: ${audio.size}B, held ${(recordedMs / 1000).toFixed(1)}s, type=${audio.type}`;
     if (audio.size > MAX_AUDIO_BYTES) {
       setError({ kind: "api", message: t("voice.error", uiLang) + ": clip too long, try a shorter question." });
+      setPhase("idle");
+      return;
+    }
+    if (audio.size < 2000) {
+      // A handful of bytes is a container header with ~no audio in it — this
+      // is what "held the button but Sarvam heard nothing" looks like at the
+      // recording layer, before it even reaches the network. Surface it here
+      // instead of letting it silently fail Sarvam's side and produce an
+      // empty transcript with no diagnostic trail.
+      setError({
+        kind: "api",
+        message: `Recording was almost empty (${audioDebug}) — the button was likely released before any audio was captured. Hold it down while speaking, then release.`,
+      });
       setPhase("idle");
       return;
     }
@@ -181,9 +198,11 @@ export default function VoicePlaygroundPage() {
           : languageChoice;
       setSpokenLanguage(detected);
       setDebugLanguage(
-        languageChoice === "auto"
-          ? `codemix=${codemix.detectedLanguage ?? "(none)"}, translate=${translated.detectedLanguage ?? "(none)"} → auto-resolved ${detected}`
-          : `forced by language picker → ${detected}`,
+        `${audioDebug} | ` +
+          (languageChoice === "auto"
+            ? `codemix=${codemix.detectedLanguage ?? "(none)"}, translate=${translated.detectedLanguage ?? "(none)"} → auto-resolved ${detected}`
+            : `forced by language picker → ${detected}`) +
+          ` | question sent to LLM (translate-mode STT text): "${translated.text || "(EMPTY — this is almost certainly why the answer never changes)"}"`,
       );
 
       setPhase("thinking");
@@ -309,10 +328,17 @@ export default function VoicePlaygroundPage() {
         </div>
       )}
 
-      {codemixText && (
+      {codemixText !== null && (
         <div className="card">
           <strong>{t("voice.youSaid", uiLang)}</strong>
-          <p>{codemixText}</p>
+          <p>
+            {codemixText || (
+              <span style={{ color: "#c0392b" }}>
+                (empty — Sarvam heard no speech in that clip. Check your mic is the right input device, and hold the
+                button for a beat longer while you speak.)
+              </span>
+            )}
+          </p>
           {debugLanguage && <p className="muted" style={{ fontSize: "0.75rem", marginTop: "0.4rem" }}>[debug] {debugLanguage}</p>}
         </div>
       )}

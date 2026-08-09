@@ -242,11 +242,20 @@ async function liveTests(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  // Stash any real key before the offline tests start clobbering
+  // NEXT_PUBLIC_SARVAM_API_KEY for isolation — restored right before
+  // liveTests() runs, or the live half silently skips even with a real key
+  // (same bug class fixed in checks/sarvam-llm.ts).
+  const realKey = process.env.NEXT_PUBLIC_SARVAM_API_KEY;
+
   await offlineKeyResolution();
   await offlineAudioSizeGuard();
   await offlineRequestShape();
   await offlineTtsSplit();
   await offlineUnknownLanguageGuard();
+
+  if (realKey) process.env.NEXT_PUBLIC_SARVAM_API_KEY = realKey;
+  else delete process.env.NEXT_PUBLIC_SARVAM_API_KEY;
   await liveTests();
 
   const summary = liveSkipped ? " (live half SKIPPED/PARTIAL — see notes above)" : "";
