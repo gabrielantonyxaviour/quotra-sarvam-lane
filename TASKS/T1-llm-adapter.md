@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED 2026-08-09** — the executable spec is now **`SARVAM-LANE-TASKS.md`** (repo root, tasks S1–S7). This brief is kept for history; where the two disagree, S1–S7 wins. Note: T6 (phone agent) is **cut** — do not work on it.
+
 # T1 — The Sarvam LLM provider (the swap itself)
 
 **Deliverable:** replace the stub body of `lib/llm/sarvam.ts` with a real
