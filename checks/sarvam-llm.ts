@@ -112,6 +112,9 @@ async function offlineTests(): Promise<void> {
   };
 
   // 1. No key anywhere → SarvamMissingKeyError, no fetch attempted.
+  // Stash any real key first — it's clobbered below for offline isolation and
+  // must be restored before liveTests() runs, or the live half can never fire.
+  const realKey = process.env.NEXT_PUBLIC_SARVAM_API_KEY;
   delete process.env.NEXT_PUBLIC_SARVAM_API_KEY;
   removeFakeStorage();
   {
@@ -163,7 +166,7 @@ async function offlineTests(): Promise<void> {
       "user message follows the system message unchanged",
       (req!.body.messages as { role: string; content: string }[])[1]?.content === "build the verdict",
     );
-    check("verdict feature requests response_format json_object", (req?.body.response_format as { type?: string } | undefined)?.type === "json_object");
+    check("verdict feature requests response_format json_schema (live-verified 2026-08-09, see MERGE-NOTES T1)", (req?.body.response_format as { type?: string } | undefined)?.type === "json_schema");
     restore();
   }
 
@@ -241,7 +244,8 @@ async function offlineTests(): Promise<void> {
   }
 
   removeFakeStorage();
-  delete process.env.NEXT_PUBLIC_SARVAM_API_KEY;
+  if (realKey) process.env.NEXT_PUBLIC_SARVAM_API_KEY = realKey;
+  else delete process.env.NEXT_PUBLIC_SARVAM_API_KEY;
 }
 
 /* ---------- live tests ---------- */

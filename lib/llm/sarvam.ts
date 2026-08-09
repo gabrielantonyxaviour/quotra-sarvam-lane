@@ -15,10 +15,15 @@
 //
 // Model routing: sarvam-105b for everything by default; sarvam-105b-conversations
 // for the "ask-quotra" feature (post-trained for dialogue, per SARVAM-API-NOTES.md).
-// response_format: json_object is applied for verdict/eligibility/bidpack features
-// (mirrors client.ts's OPUS_FEATURES heavy-task routing) — the spike
-// (checks/sarvam-spike.ts) is the live proof point for this choice; see
-// MERGE-NOTES.md for the result once run with a real key.
+//
+// response_format LIVE-VERIFIED 2026-08-09 (checks/sarvam-spike.ts, 3/3 PASS against
+// the real API, see MERGE-NOTES.md T1 block for numbers): json_schema beat json_object
+// on both latency (3.3s vs 26.4s — ~8x) AND correctness (server-side shape enforcement).
+// Applied for "verdict" specifically, where this lane owns a concrete wire schema
+// (VERDICT_JSON_SCHEMA below, mirrors lib/verdict/engine.ts's validateVerdictOutput).
+// eligibility/bidpack are named in JSON_MODE_FEATURES (mirroring client.ts's
+// OPUS_FEATURES) but have no concrete prompt/schema in this trimmed lane — left on
+// json_object rather than guessing a schema shape that was never proven.
 
 import {
   Transcript,
@@ -39,6 +44,34 @@ const DEFAULT_MAX_TOKENS = 4096; // Starter-plan cap; thinking mode eats into th
 const JSON_MODE_FEATURES = ["verdict", "eligibility", "bidpack", "bid-pack"];
 /** Features tuned better by the dialogue-post-trained model variant. */
 const CONVERSATION_FEATURES = ["ask-quotra"];
+
+/** Wire-level JSON schema for the verdict contract, sent as response_format's
+ *  json_schema.schema. Mirrors lib/verdict/engine.ts's validateVerdictOutput —
+ *  keep these two in sync if the verdict contract ever changes shape. Live-proved
+ *  in checks/sarvam-spike.ts (3/3 PASS, fastest + schema-enforced of the 3 modes). */
+const VERDICT_JSON_SCHEMA = {
+  type: "object",
+  required: ["verdict", "reasons", "requirements", "eligibilityClauses", "disqualificationRisks", "unknowns"],
+  properties: {
+    verdict: { type: "string", enum: ["GO", "NO-GO", "FIXABLE"] },
+    reasons: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["clause", "page", "text"],
+        properties: {
+          clause: { type: "string" },
+          page: { type: ["number", "null"] },
+          text: { type: "string" },
+        },
+      },
+    },
+    requirements: { type: "array", items: { type: "string" } },
+    eligibilityClauses: { type: "array", items: { type: "string" } },
+    disqualificationRisks: { type: "array", items: { type: "string" } },
+    unknowns: { type: "array", items: { type: "string" } },
+  },
+};
 
 /** Task-based default model, mirroring client.ts's modelFor(). Env override:
  *  NEXT_PUBLIC_QUOTRA_SARVAM_MODEL (blanket, matches the Anthropic pattern). */
@@ -123,7 +156,9 @@ export async function sarvamComplete(args: CompleteArgs): Promise<CompleteResult
     max_tokens: maxTokens,
     temperature: 0.2,
   };
-  if (wantsJsonMode(args.feature)) {
+  if (args.feature.toLowerCase().startsWith("verdict")) {
+    body.response_format = { type: "json_schema", json_schema: { name: "verdict", schema: VERDICT_JSON_SCHEMA } };
+  } else if (wantsJsonMode(args.feature)) {
     body.response_format = { type: "json_object" };
   }
 

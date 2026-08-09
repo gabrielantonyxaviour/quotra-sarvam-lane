@@ -20,14 +20,35 @@ Template:
 
 (entries start here)
 
-## T1 — LLM adapter (Sarvam) · done, spike not yet live-run · ~1h
+## T1 — LLM adapter (Sarvam) · done, spike LIVE-RUN 2026-08-09 · ~1h
 
 - Landed: `lib/llm/sarvam.ts` (real `sarvamComplete`), `checks/sarvam-spike.ts`,
   `checks/sarvam-llm.ts`.
-- Check: `npx tsx checks/sarvam-llm.ts` → **17/17 offline PASS**; live half (real verdict
-  + Tanglish Ask-Quotra) **SKIPPED — no `NEXT_PUBLIC_SARVAM_API_KEY` in this environment**.
-  `npx tsx checks/sarvam-spike.ts` → **SKIPPED, same reason** (all 3 response-format modes
-  unexercised against the real API). `npm run check` (tsc) → clean.
+- Check: `npx tsx checks/sarvam-llm.ts` → **17/17 offline PASS**.
+  `npx tsx checks/sarvam-spike.ts` (LIVE, real key, real verdict fixture
+  `cppp-2026-drdo-921134-1`) → **3/3 PASS**:
+  - `plain` (no response_format): PASS in 1 attempt, 4361ms
+  - `json_object`: PASS in 1 attempt, 26370ms (**much slower — avoid for latency-sensitive
+    calls**)
+  - `json_schema` (verdict shape): PASS in 1 attempt, 3299ms (**fastest AND schema-enforced
+    server-side — this is the mode to use**)
+
+  `npm run check` (tsc) → clean.
+- **Decision locked in from live data**: `lib/llm/sarvam.ts` now sends
+  `response_format: { type: "json_schema" }` with a concrete `VERDICT_JSON_SCHEMA` for
+  the `verdict` feature (mirrors `lib/verdict/engine.ts`'s `validateVerdictOutput` —
+  keep in sync). `eligibility`/`bidpack` stay on `json_object` — they're named in
+  `JSON_MODE_FEATURES` (mirroring `client.ts`'s `OPUS_FEATURES`) but have no concrete
+  prompt/schema in this trimmed lane, so switching them would be guessing a schema shape
+  that's never been proven.
+- **Bug found and fixed in `checks/sarvam-llm.ts`**: the offline test suite clobbered
+  `NEXT_PUBLIC_SARVAM_API_KEY` for isolation (`delete process.env...`) but never restored
+  it before `liveTests()` ran — so the live half silently SKIPPED even with a real key
+  set. Fixed to stash/restore the real key. With that fixed and a real key:
+  `npx tsx checks/sarvam-llm.ts` → **19/19 PASS live** (was 17/17 offline-only) — real
+  verdict call on fixture tender `[0]` passes `validateVerdictOutput`, real Tanglish
+  Ask-Quotra call returns non-empty cited English text. **T1's LLM adapter is now fully
+  live-verified end to end, not just offline-proven.**
 - Wire-up tonight: nothing extra — `lib/llm/sarvam.ts` implements the frozen `./client.ts`
   contract exactly, so flipping `localStorage.quotra_llm_provider = "sarvam"` (or
   `NEXT_PUBLIC_QUOTRA_LLM_PROVIDER=sarvam`) routes every intelligent surface through it via
